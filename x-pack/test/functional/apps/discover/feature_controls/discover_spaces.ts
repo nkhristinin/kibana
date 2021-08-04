@@ -38,7 +38,7 @@ export default function ({ getPageObjects, getService }: FtrProviderContext) {
         // we need to load the following in every situation as deleting
         // a space deletes all of the associated saved objects
         await kibanaServer.importExport.load(
-          'fixtures/kbn_archiver/discover/feature_controls/spaces'
+          'x-pack/test/functional/fixtures/kbn_archiver/discover/feature_controls/spaces'
         );
         await spacesService.create({
           id: 'custom_space',
@@ -50,7 +50,7 @@ export default function ({ getPageObjects, getService }: FtrProviderContext) {
       after(async () => {
         await spacesService.delete('custom_space');
         await kibanaServer.importExport.unload(
-          'fixtures/kbn_archiver/discover/feature_controls/spaces'
+          'x-pack/test/functional/fixtures/kbn_archiver/discover/feature_controls/spaces'
         );
       });
 
@@ -86,7 +86,7 @@ export default function ({ getPageObjects, getService }: FtrProviderContext) {
         // we need to load the following in every situation as deleting
         // a space deletes all of the associated saved objects
         await kibanaServer.importExport.load(
-          'fixtures/kbn_archiver/discover/feature_controls/spaces'
+          'x-pack/test/functional/fixtures/kbn_archiver/discover/feature_controls/spaces'
         );
         await spacesService.create({
           id: 'custom_space',
@@ -98,7 +98,7 @@ export default function ({ getPageObjects, getService }: FtrProviderContext) {
       after(async () => {
         await spacesService.delete('custom_space');
         await kibanaServer.importExport.unload(
-          'fixtures/kbn_archiver/discover/feature_controls/spaces'
+          'x-pack/test/functional/fixtures/kbn_archiver/discover/feature_controls/spaces'
         );
       });
 
