@@ -22,12 +22,14 @@ export default function ({ getPageObjects, getService }: FtrProviderContext) {
   ]);
   const testSubjects = getService('testSubjects');
   const appsMenu = getService('appsMenu');
+  const kibanaServer = getService('kibanaServer');
+
 
   async function setDiscoverTimeRange() {
     await PageObjects.timePicker.setDefaultAbsoluteRange();
   }
 
-  describe('spaces', () => {
+  describe('tre spaces', () => {
     before(async () => {
       await esArchiver.loadIfNeeded('x-pack/test/functional/es_archives/logstash_functional');
     });
@@ -36,9 +38,7 @@ export default function ({ getPageObjects, getService }: FtrProviderContext) {
       before(async () => {
         // we need to load the following in every situation as deleting
         // a space deletes all of the associated saved objects
-        await esArchiver.load(
-          'x-pack/test/functional/es_archives/discover/feature_controls/spaces'
-        );
+        await kibanaServer.importExport.load('fixtures/kbn_archiver/discover/feature_controls/spaces')
         await spacesService.create({
           id: 'custom_space',
           name: 'custom_space',
@@ -48,9 +48,7 @@ export default function ({ getPageObjects, getService }: FtrProviderContext) {
 
       after(async () => {
         await spacesService.delete('custom_space');
-        await esArchiver.unload(
-          'x-pack/test/functional/es_archives/discover/feature_controls/spaces'
-        );
+        await kibanaServer.importExport.unload('fixtures/kbn_archiver/discover/feature_controls/spaces')
       });
 
       it('shows discover navlink', async () => {
@@ -84,9 +82,7 @@ export default function ({ getPageObjects, getService }: FtrProviderContext) {
       before(async () => {
         // we need to load the following in every situation as deleting
         // a space deletes all of the associated saved objects
-        await esArchiver.load(
-          'x-pack/test/functional/es_archives/discover/feature_controls/spaces'
-        );
+        await kibanaServer.importExport.load('fixtures/kbn_archiver/discover/feature_controls/spaces')
         await spacesService.create({
           id: 'custom_space',
           name: 'custom_space',
@@ -96,9 +92,7 @@ export default function ({ getPageObjects, getService }: FtrProviderContext) {
 
       after(async () => {
         await spacesService.delete('custom_space');
-        await esArchiver.unload(
-          'x-pack/test/functional/es_archives/discover/feature_controls/spaces'
-        );
+        await kibanaServer.importExport.unload('fixtures/kbn_archiver/discover/feature_controls/spaces')
       });
 
       it(`doesn't show discover navlink`, async () => {
