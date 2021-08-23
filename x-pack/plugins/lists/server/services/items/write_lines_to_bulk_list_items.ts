@@ -60,6 +60,7 @@ export const importListItemsToStream = ({
     readBuffer.on('fileName', async (fileNameEmitted: string) => {
       readBuffer.pause();
       fileName = fileNameEmitted;
+      console.log('test')
       if (listId == null) {
         list = await createListIfItDoesNotExist({
           description: `File uploaded from file system of ${fileNameEmitted}`,
