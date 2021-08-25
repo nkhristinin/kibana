@@ -127,10 +127,6 @@ export const dependentRulesSchema = t.partial({
 
   // eql only fields
   event_category_override,
-
-  // when type = saved_query, saved_id is required
-  saved_id,
-
   // These two are required together or not at all.
   timeline_id,
   timeline_title,
@@ -210,14 +206,6 @@ export const rulesSchema = new t.Type<
  */
 export type RulesSchema = t.TypeOf<typeof rulesSchema>;
 
-export const addSavedId = (typeAndTimelineOnly: TypeAndTimelineOnly): t.Mixed[] => {
-  if (typeAndTimelineOnly.type === 'saved_query') {
-    return [t.exact(t.type({ saved_id: dependentRulesSchema.props.saved_id }))];
-  } else {
-    return [];
-  }
-};
-
 export const addTimelineTitle = (typeAndTimelineOnly: TypeAndTimelineOnly): t.Mixed[] => {
   if (typeAndTimelineOnly.timeline_id != null) {
     return [
@@ -255,10 +243,7 @@ export const addMlFields = (typeAndTimelineOnly: TypeAndTimelineOnly): t.Mixed[]
 
 export const addThresholdFields = (typeAndTimelineOnly: TypeAndTimelineOnly): t.Mixed[] => {
   if (isThresholdRule(typeAndTimelineOnly.type)) {
-    return [
-      t.exact(t.type({ threshold: dependentRulesSchema.props.threshold })),
-      t.exact(t.partial({ saved_id: dependentRulesSchema.props.saved_id })),
-    ];
+    return [t.exact(t.type({ threshold: dependentRulesSchema.props.threshold }))];
   } else {
     return [];
   }
@@ -289,7 +274,6 @@ export const addThreatMatchFields = (typeAndTimelineOnly: TypeAndTimelineOnly): 
       t.exact(
         t.partial({ threat_indicator_path: dependentRulesSchema.props.threat_indicator_path })
       ),
-      t.exact(t.partial({ saved_id: dependentRulesSchema.props.saved_id })),
       t.exact(t.partial({ concurrent_searches: dependentRulesSchema.props.concurrent_searches })),
       t.exact(
         t.partial({
@@ -306,7 +290,6 @@ export const getDependents = (typeAndTimelineOnly: TypeAndTimelineOnly): t.Mixed
   const dependents: t.Mixed[] = [
     t.exact(requiredRulesSchema),
     t.exact(partialRulesSchema),
-    ...addSavedId(typeAndTimelineOnly),
     ...addTimelineTitle(typeAndTimelineOnly),
     ...addQueryFields(typeAndTimelineOnly),
     ...addMlFields(typeAndTimelineOnly),

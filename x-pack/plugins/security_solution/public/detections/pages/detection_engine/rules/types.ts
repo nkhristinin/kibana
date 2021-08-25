@@ -154,7 +154,6 @@ export interface DefineStepRuleJson {
   index?: string[];
   filters?: Filter[];
   machine_learning_job_id?: string[];
-  saved_id?: string;
   query?: string;
   language?: string;
   threshold?: {

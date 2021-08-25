@@ -52,8 +52,6 @@ import {
   to,
   references,
   eventCategoryOverrideOrUndefined,
-  savedIdOrUndefined,
-  saved_id,
   thresholdNormalized,
   anomaly_threshold,
   createdByOrNull,
@@ -114,7 +112,6 @@ const threatSpecificRuleParams = t.type({
   index: indexOrUndefined,
   query,
   filters: filtersOrUndefined,
-  savedId: savedIdOrUndefined,
   threatFilters: filtersOrUndefined,
   threatQuery: threat_query,
   threatMapping: threat_mapping,
@@ -134,7 +131,6 @@ const querySpecificRuleParams = t.exact(
     index: indexOrUndefined,
     query,
     filters: filtersOrUndefined,
-    savedId: savedIdOrUndefined,
   })
 );
 export const queryRuleParams = t.intersection([baseRuleParams, querySpecificRuleParams]);
@@ -148,7 +144,6 @@ const savedQuerySpecificRuleParams = t.type({
   index: indexOrUndefined,
   query: queryOrUndefined,
   filters: filtersOrUndefined,
-  savedId: saved_id,
 });
 export const savedQueryRuleParams = t.intersection([baseRuleParams, savedQuerySpecificRuleParams]);
 export type SavedQueryRuleParams = t.TypeOf<typeof savedQueryRuleParams>;
@@ -159,7 +154,6 @@ const thresholdSpecificRuleParams = t.type({
   index: indexOrUndefined,
   query,
   filters: filtersOrUndefined,
-  savedId: savedIdOrUndefined,
   threshold: thresholdNormalized,
 });
 export const thresholdRuleParams = t.intersection([baseRuleParams, thresholdSpecificRuleParams]);

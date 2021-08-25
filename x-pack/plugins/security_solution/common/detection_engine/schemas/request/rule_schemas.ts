@@ -51,7 +51,6 @@ import {
   query,
   to,
   references,
-  saved_id,
   threshold,
   anomaly_threshold,
   name,
@@ -229,7 +228,6 @@ const threatMatchRuleParams = {
   optional: {
     index,
     filters,
-    saved_id,
     threat_filters,
     threat_indicator_path,
     threat_language: t.keyof({ kuery: null, lucene: null }),
@@ -254,7 +252,6 @@ const queryRuleParams = {
   optional: {
     index,
     filters,
-    saved_id,
   },
   defaultable: {
     query,
@@ -272,7 +269,6 @@ export { queryCreateParams };
 const savedQueryRuleParams = {
   required: {
     type: t.literal('saved_query'),
-    saved_id,
   },
   optional: {
     // Having language, query, and filters possibly defined adds more code confusion and probably user confusion
@@ -302,7 +298,6 @@ const thresholdRuleParams = {
   optional: {
     index,
     filters,
-    saved_id,
   },
   defaultable: {
     language: t.keyof({ kuery: null, lucene: null }),
