@@ -58,7 +58,6 @@ import {
   created_at,
   created_by,
   updated_at,
-  saved_id,
   timeline_id,
   timeline_title,
   threshold,

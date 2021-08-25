@@ -118,9 +118,8 @@ describe('helpers', () => {
         language: 'kuery',
         filters: mockQueryBar.filters,
         query: 'test query',
-        saved_id: 'test123',
         index: ['filebeat-'],
-        type: 'saved_query',
+        type: 'query',
         timeline_id: '86aa74d0-2136-11ea-9864-ebc8cc1cb8c2',
         timeline_title: 'Titled timeline',
       };
@@ -142,7 +141,6 @@ describe('helpers', () => {
         filters: mockQueryBar.filters,
         query: 'test query',
         index: ['filebeat-'],
-        saved_id: '',
         type: 'query',
         timeline_id: '86aa74d0-2136-11ea-9864-ebc8cc1cb8c2',
         timeline_title: 'Titled timeline',
@@ -165,8 +163,7 @@ describe('helpers', () => {
         filters: mockQueryBar.filters,
         query: 'test query',
         index: ['filebeat-'],
-        saved_id: 'test123',
-        type: 'saved_query',
+        type: 'query',
       };
 
       expect(result).toEqual(expected);
@@ -187,8 +184,7 @@ describe('helpers', () => {
         filters: mockQueryBar.filters,
         query: 'test query',
         index: ['filebeat-'],
-        saved_id: 'test123',
-        type: 'saved_query',
+        type: 'query',
         timeline_id: '',
         timeline_title: 'Titled timeline',
       };
@@ -213,8 +209,7 @@ describe('helpers', () => {
         filters: mockQueryBar.filters,
         query: 'test query',
         index: ['filebeat-'],
-        saved_id: 'test123',
-        type: 'saved_query',
+        type: 'query',
       };
 
       expect(result).toEqual(expected);
@@ -235,8 +230,7 @@ describe('helpers', () => {
         filters: mockQueryBar.filters,
         query: 'test query',
         index: ['filebeat-'],
-        saved_id: 'test123',
-        type: 'saved_query',
+        type: 'query',
         timeline_id: '86aa74d0-2136-11ea-9864-ebc8cc1cb8c2',
         timeline_title: '',
       };
@@ -338,7 +332,6 @@ describe('helpers', () => {
       const expected: DefineStepRuleJson = {
         language: 'kuery',
         query: 'test query',
-        saved_id: 'test123',
         type: 'threat_match',
         threat_query: 'threat_host: *',
         timeline_id: '86aa74d0-2136-11ea-9864-ebc8cc1cb8c2',
@@ -828,10 +821,10 @@ describe('helpers', () => {
       mockActions = mockActionsStepRule();
     });
 
-    test('returns rule with type of saved_query when saved_id exists', () => {
+    test('returns rule with type of query when saved_id exists', () => {
       const result = formatRule<Rule>(mockDefine, mockAbout, mockSchedule, mockActions);
 
-      expect(result.type).toEqual('saved_query');
+      expect(result.type).toEqual('query');
     });
 
     test('returns rule with type of query when saved_id does not exist', () => {

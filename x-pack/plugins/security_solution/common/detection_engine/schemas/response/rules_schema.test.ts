@@ -14,7 +14,6 @@ import {
   RulesSchema,
   checkTypeDependents,
   getDependents,
-  addSavedId,
   addQueryFields,
   addTimelineTitle,
   addMlFields,
@@ -85,42 +84,25 @@ describe('rules_schema', () => {
     expect(message.schema).toEqual({});
   });
 
-  test('it should validate a type of "saved_query" with a "saved_id" dependent', () => {
+
+  test('it should validate a type of "saved_query" without a "saved_id" dependent', () => {
     const payload = getRulesSchemaMock();
     payload.type = 'saved_query';
-    payload.saved_id = 'save id 123';
 
     const decoded = rulesSchema.decode(payload);
     const checked = exactCheck(payload, decoded);
     const message = pipe(checked, foldLeftRight);
-    const expected = getRulesSchemaMock();
 
+    const expected = getRulesSchemaMock();
     expected.type = 'saved_query';
-    expected.saved_id = 'save id 123';
 
     expect(getPaths(left(message.errors))).toEqual([]);
     expect(message.schema).toEqual(expected);
   });
 
-  test('it should NOT validate a type of "saved_query" without a "saved_id" dependent', () => {
-    const payload = getRulesSchemaMock();
-    payload.type = 'saved_query';
-    delete payload.saved_id;
-
-    const decoded = rulesSchema.decode(payload);
-    const checked = exactCheck(payload, decoded);
-    const message = pipe(checked, foldLeftRight);
-
-    expect(getPaths(left(message.errors))).toEqual([
-      'Invalid value "undefined" supplied to "saved_id"',
-    ]);
-    expect(message.schema).toEqual({});
-  });
-
   test('it should NOT validate a type of "saved_query" when it has extra data', () => {
     const payload: RulesSchema & { invalid_extra_data?: string } = getRulesSchemaMock();
     payload.type = 'saved_query';
-    payload.saved_id = 'save id 123';
     payload.invalid_extra_data = 'invalid_extra_data';
 
     const decoded = rulesSchema.decode(payload);
@@ -187,35 +169,7 @@ describe('rules_schema', () => {
     expect(message.schema).toEqual({});
   });
 
-  test('it should NOT validate a type of "saved_query" with a "saved_id" dependent and a "timeline_title" but there is NOT a "timeline_id"', () => {
-    const payload = getRulesSchemaMock();
-    payload.saved_id = 'some saved id';
-    payload.type = 'saved_query';
-    payload.timeline_title = 'some timeline title';
-
-    const decoded = rulesSchema.decode(payload);
-    const checked = exactCheck(payload, decoded);
-    const message = pipe(checked, foldLeftRight);
-
-    expect(getPaths(left(message.errors))).toEqual(['invalid keys "timeline_title"']);
-    expect(message.schema).toEqual({});
-  });
-
-  test('it should NOT validate a type of "saved_query" with a "saved_id" dependent and a "timeline_id" but there is NOT a "timeline_title"', () => {
-    const payload = getRulesSchemaMock();
-    payload.saved_id = 'some saved id';
-    payload.type = 'saved_query';
-    payload.timeline_id = 'some timeline id';
-
-    const decoded = rulesSchema.decode(payload);
-    const checked = exactCheck(payload, decoded);
-    const message = pipe(checked, foldLeftRight);
-
-    expect(getPaths(left(message.errors))).toEqual([
-      'Invalid value "undefined" supplied to "timeline_title"',
-    ]);
-    expect(message.schema).toEqual({});
-  });
+  
 
   describe('checkTypeDependents', () => {
     test('it should validate a type of "query" without anything extra', () => {
@@ -257,10 +211,9 @@ describe('rules_schema', () => {
       expect(message.schema).toEqual({});
     });
 
-    test('it should validate a type of "saved_query" with a "saved_id" dependent', () => {
+    test('it should validate a type of "saved_query" without a "saved_id" dependent', () => {
       const payload = getRulesSchemaMock();
       payload.type = 'saved_query';
-      payload.saved_id = 'save id 123';
 
       const decoded = checkTypeDependents(payload);
       const checked = exactCheck(payload, decoded);
@@ -268,31 +221,14 @@ describe('rules_schema', () => {
       const expected = getRulesSchemaMock();
 
       expected.type = 'saved_query';
-      expected.saved_id = 'save id 123';
 
       expect(getPaths(left(message.errors))).toEqual([]);
       expect(message.schema).toEqual(expected);
     });
 
-    test('it should NOT validate a type of "saved_query" without a "saved_id" dependent', () => {
-      const payload = getRulesSchemaMock();
-      payload.type = 'saved_query';
-      delete payload.saved_id;
-
-      const decoded = checkTypeDependents(payload);
-      const checked = exactCheck(payload, decoded);
-      const message = pipe(checked, foldLeftRight);
-
-      expect(getPaths(left(message.errors))).toEqual([
-        'Invalid value "undefined" supplied to "saved_id"',
-      ]);
-      expect(message.schema).toEqual({});
-    });
-
     test('it should NOT validate a type of "saved_query" when it has extra data', () => {
       const payload: RulesSchema & { invalid_extra_data?: string } = getRulesSchemaMock();
       payload.type = 'saved_query';
-      payload.saved_id = 'save id 123';
       payload.invalid_extra_data = 'invalid_extra_data';
 
       const decoded = checkTypeDependents(payload);
@@ -356,36 +292,6 @@ describe('rules_schema', () => {
       const message = pipe(checked, foldLeftRight);
 
       expect(getPaths(left(message.errors))).toEqual(['invalid keys "timeline_title"']);
-      expect(message.schema).toEqual({});
-    });
-
-    test('it should NOT validate a type of "saved_query" with a "saved_id" dependent and a "timeline_title" but there is NOT a "timeline_id"', () => {
-      const payload = getRulesSchemaMock();
-      payload.saved_id = 'some saved id';
-      payload.type = 'saved_query';
-      payload.timeline_title = 'some timeline title';
-
-      const decoded = checkTypeDependents(payload);
-      const checked = exactCheck(payload, decoded);
-      const message = pipe(checked, foldLeftRight);
-
-      expect(getPaths(left(message.errors))).toEqual(['invalid keys "timeline_title"']);
-      expect(message.schema).toEqual({});
-    });
-
-    test('it should NOT validate a type of "saved_query" with a "saved_id" dependent and a "timeline_id" but there is NOT a "timeline_title"', () => {
-      const payload = getRulesSchemaMock();
-      payload.saved_id = 'some saved id';
-      payload.type = 'saved_query';
-      payload.timeline_id = 'some timeline id';
-
-      const decoded = checkTypeDependents(payload);
-      const checked = exactCheck(payload, decoded);
-      const message = pipe(checked, foldLeftRight);
-
-      expect(getPaths(left(message.errors))).toEqual([
-        'Invalid value "undefined" supplied to "timeline_title"',
-      ]);
       expect(message.schema).toEqual({});
     });
   });
@@ -433,25 +339,8 @@ describe('rules_schema', () => {
       expect(message.schema).toEqual({});
     });
 
-    test('it should validate a type of "saved_query" with a "saved_id" dependent', () => {
-      const payload = getRulesSchemaMock();
-      payload.type = 'saved_query';
-      payload.saved_id = 'save id 123';
 
-      const dependents = getDependents(payload);
-      const decoded = dependents.decode(payload);
-      const checked = exactCheck(payload, decoded);
-      const message = pipe(checked, foldLeftRight);
-      const expected = getRulesSchemaMock();
-
-      expected.type = 'saved_query';
-      expected.saved_id = 'save id 123';
-
-      expect(getPaths(left(message.errors))).toEqual([]);
-      expect(message.schema).toEqual(expected);
-    });
-
-    test('it should NOT validate a type of "saved_query" without a "saved_id" dependent', () => {
+    test('it should validate a type of "saved_query" without a "saved_id" dependent', () => {
       const payload = getRulesSchemaMock();
       payload.type = 'saved_query';
       delete payload.saved_id;
@@ -461,16 +350,13 @@ describe('rules_schema', () => {
       const checked = exactCheck(payload, decoded);
       const message = pipe(checked, foldLeftRight);
 
-      expect(getPaths(left(message.errors))).toEqual([
-        'Invalid value "undefined" supplied to "saved_id"',
-      ]);
-      expect(message.schema).toEqual({});
+      expect(getPaths(left(message.errors))).toEqual([]);
+      expect(message.schema).toEqual(payload);
     });
 
     test('it should NOT validate a type of "saved_query" when it has extra data', () => {
       const payload: RulesSchema & { invalid_extra_data?: string } = getRulesSchemaMock();
       payload.type = 'saved_query';
-      payload.saved_id = 'save id 123';
       payload.invalid_extra_data = 'invalid_extra_data';
 
       const dependents = getDependents(payload);
@@ -535,20 +421,6 @@ describe('rules_schema', () => {
 
       const dependents = getDependents(payload);
       const decoded = dependents.decode(payload);
-      const checked = exactCheck(payload, decoded);
-      const message = pipe(checked, foldLeftRight);
-
-      expect(getPaths(left(message.errors))).toEqual(['invalid keys "timeline_title"']);
-      expect(message.schema).toEqual({});
-    });
-
-    test('it should NOT validate a type of "saved_query" with a "saved_id" dependent and a "timeline_title" but there is NOT a "timeline_id"', () => {
-      const payload = getRulesSchemaMock();
-      payload.saved_id = 'some saved id';
-      payload.type = 'saved_query';
-      payload.timeline_title = 'some timeline title';
-
-      const decoded = checkTypeDependents(payload);
       const checked = exactCheck(payload, decoded);
       const message = pipe(checked, foldLeftRight);
 
@@ -645,18 +517,6 @@ describe('rules_schema', () => {
     });
   });
 
-  describe('addSavedId', () => {
-    test('should return empty array if not given a type of "saved_query"', () => {
-      const emptyArray = addSavedId({ type: 'query' });
-      const expected: t.Mixed[] = [];
-      expect(emptyArray).toEqual(expected);
-    });
-
-    test('should array of size 1 given a "saved_query"', () => {
-      const array = addSavedId({ type: 'saved_query' });
-      expect(array.length).toEqual(1);
-    });
-  });
 
   describe('addTimelineTitle', () => {
     test('should return empty array if not given a timeline_id', () => {
@@ -762,9 +622,9 @@ describe('rules_schema', () => {
       expect(fields).toEqual(expected);
     });
 
-    test('should return nine (9) fields for a rule of type "threat_match"', () => {
+    test('should return eight (8) fields for a rule of type "threat_match"', () => {
       const fields = addThreatMatchFields({ type: 'threat_match' });
-      expect(fields.length).toEqual(9);
+      expect(fields.length).toEqual(8);
     });
   });
 

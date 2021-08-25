@@ -421,19 +421,6 @@ describe('create rules schema', () => {
     expect(message.schema).toEqual({});
   });
 
-  test('saved_query type can have filters with it', () => {
-    const payload: SavedQueryCreateSchema = {
-      ...getCreateSavedQueryRulesSchemaMock(),
-      filters: [],
-    };
-
-    const decoded = createRulesSchema.decode(payload);
-    const checked = exactCheck(payload, decoded);
-    const message = pipe(checked, foldLeftRight);
-    expect(getPaths(left(message.errors))).toEqual([]);
-    expect(message.schema).toEqual(payload);
-  });
-
   test('filters cannot be a string', () => {
     const payload = {
       ...getCreateRulesSchemaMock(),
@@ -1013,16 +1000,14 @@ describe('create rules schema', () => {
     expect(message.schema).toEqual(payload);
   });
 
-  test('saved_id is required when type is saved_query and will not validate without it', () => {
+  test('saved_id is not required when type is saved_query and will validate without it', () => {
     /* eslint-disable @typescript-eslint/naming-convention */
     const { saved_id, ...payload } = getCreateSavedQueryRulesSchemaMock();
     const decoded = createRulesSchema.decode(payload);
     const checked = exactCheck(payload, decoded);
     const message = pipe(checked, foldLeftRight);
-    expect(getPaths(left(message.errors))).toEqual([
-      'Invalid value "undefined" supplied to "saved_id"',
-    ]);
-    expect(message.schema).toEqual({});
+    expect(getPaths(left(message.errors))).toEqual([]);
+    expect(message.schema).toEqual(payload);
   });
 
   test('threshold is required when type is threshold and will not validate without it', () => {

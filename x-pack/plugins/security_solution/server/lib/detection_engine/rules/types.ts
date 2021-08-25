@@ -288,7 +288,6 @@ export interface PatchRulesOptions {
   from: FromOrUndefined;
   query: QueryOrUndefined;
   language: LanguageOrUndefined;
-  savedId: SavedIdOrUndefined;
   timelineId: TimelineIdOrUndefined;
   timelineTitle: TimelineTitleOrUndefined;
   meta: MetaOrUndefined;
