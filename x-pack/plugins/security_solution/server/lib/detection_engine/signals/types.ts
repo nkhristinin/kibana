@@ -42,6 +42,7 @@ import type {
   WrappedFieldsLatest,
 } from '../../../../common/detection_engine/schemas/alerts';
 import type { IRuleExecutionLogForExecutors } from '../rule_monitoring';
+import type { EnrichEvents } from './enrichments/types';
 
 export interface ThresholdResult {
   terms?: Array<{
@@ -241,7 +242,8 @@ export type SignalsEnrichment = (signals: SignalSourceHit[]) => Promise<SignalSo
 
 export type BulkCreate = <T extends BaseFieldsLatest>(
   docs: Array<WrappedFieldsLatest<T>>,
-  maxAlerts?: number
+  maxAlerts?: number,
+  enrichEvents?: EnrichEvents
 ) => Promise<GenericBulkCreateResponse<T>>;
 
 export type SimpleHit = BaseHit<{ '@timestamp'?: string }>;
@@ -256,6 +258,11 @@ export type WrapSequences = (
   buildReasonMessage: BuildReasonMessage
 ) => Array<WrappedFieldsLatest<BaseFieldsLatest>>;
 
+export type RuleServices = RuleExecutorServices<
+  AlertInstanceState,
+  AlertInstanceContext,
+  'default'
+>;
 export interface SearchAfterAndBulkCreateParams {
   tuple: {
     to: moment.Moment;
@@ -266,7 +273,7 @@ export interface SearchAfterAndBulkCreateParams {
     | CompleteRule<QueryRuleParams>
     | CompleteRule<SavedQueryRuleParams>
     | CompleteRule<ThreatRuleParams>;
-  services: RuleExecutorServices<AlertInstanceState, AlertInstanceContext, 'default'>;
+  services: RuleServices;
   listClient: ListClient;
   exceptionsList: ExceptionListItemSchema[];
   ruleExecutionLogger: IRuleExecutionLogForExecutors;
