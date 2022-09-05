@@ -16,7 +16,8 @@ import { RISKY_HOSTS_DOC_LINK } from '../../../../../common/constants';
 
 const HostRiskSummaryComponent: React.FC<{
   hostRisk: HostRisk;
-}> = ({ hostRisk }) => (
+  originalHostRisk: RiskSeverity | undefined;
+}> = ({ hostRisk, originalHostRisk }) => (
   <>
     <EuiPanel hasBorder paddingSize="s" grow={false}>
       <ThreatSummaryPanelHeader
@@ -50,17 +51,29 @@ const HostRiskSummaryComponent: React.FC<{
         </>
       )}
 
-      {hostRisk.isModuleEnabled && hostRisk.result && hostRisk.result.length > 0 && (
+      {hostRisk.isModuleEnabled && hostRisk.result && (
         <>
-          <EnrichedDataRow
-            field={i18n.HOST_RISK_CLASSIFICATION}
-            value={
-              <RiskScore
-                severity={hostRisk.result[0].host.risk.calculated_level}
-                hideBackgroundColor
+          {hostRisk.result.length > 0 && (
+            <>
+              <EnrichedDataRow
+                field={i18n.CURRENT_HOST_RISK_CLASSIFICATION}
+                value={
+                  <RiskScore
+                    severity={hostRisk.result[0].risk.calculated_level}
+                    hideBackgroundColor
+                  />
+                }
               />
-            }
-          />
+            </>
+          )}
+          {originalHostRisk && hostRisk.result[0]?.risk !== originalHostRisk && (
+            <>
+              <EnrichedDataRow
+                field={i18n.ORIGINAL_HOST_RISK_CLASSIFICATION}
+                value={<RiskScore severity={originalHostRisk} hideBackgroundColor />}
+              />
+            </>
+          )}
         </>
       )}
     </EuiPanel>

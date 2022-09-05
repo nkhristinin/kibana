@@ -142,6 +142,10 @@ const ThreatSummaryViewComponent: React.FC<{
     return null;
   }
 
+  const originalHostRisk = data?.find(
+    (eventDetail) => eventDetail?.field === 'host.risk.calculated_level'
+  )?.values?.[0];
+
   return (
     <>
       <EuiHorizontalRule />
@@ -154,7 +158,7 @@ const ThreatSummaryViewComponent: React.FC<{
       <EuiFlexGroup direction="column" gutterSize="m" style={{ flexGrow: 0 }}>
         {hostRisk && (
           <EuiFlexItem grow={false}>
-            <HostRiskSummary hostRisk={hostRisk} />
+            <HostRiskSummary hostRisk={hostRisk} originalHostRisk={originalHostRisk} />
           </EuiFlexItem>
         )}
 
