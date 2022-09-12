@@ -114,14 +114,14 @@ export const ENRICHED_DATA = i18n.translate(
 );
 
 export const CURRENT_HOST_RISK_CLASSIFICATION = i18n.translate(
-  'xpack.securitySolution.alertDetails.hostRiskClassification',
+  'xpack.securitySolution.alertDetails.currentHostRiskClassification',
   {
     defaultMessage: 'Current host risk classification',
   }
 );
 
 export const ORIGINAL_HOST_RISK_CLASSIFICATION = i18n.translate(
-  'xpack.securitySolution.alertDetails.hostRiskClassification',
+  'xpack.securitySolution.alertDetails.originalHostRiskClassification',
   {
     defaultMessage: 'Orignial host risk classification',
   }
