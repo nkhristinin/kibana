@@ -57,6 +57,18 @@ export interface SimpleRiskScore extends BaseRiskScore {
   riskiestInputs: SimpleRiskInput[];
 }
 
+export interface WatchList {
+  '@timestamp': string;
+  identifierField: string;
+  identifierValue: string;
+  riskLevel: string;
+}
+
+interface WatchListMap {
+  user: Record<string, string>;
+  host: Record<string, string>;
+}
+
 export interface FullRiskScore extends BaseRiskScore {
   riskiestInputs: RiskInput[];
 }

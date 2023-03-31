@@ -18,6 +18,8 @@ import type {
   RiskScoreBucket,
   RiskScoreWeight,
   SimpleRiskScore,
+  WatchList,
+  WatchListMap,
 } from './types';
 
 const getFieldForIdentifierAgg = (identifierType: IdentifierType): string =>
@@ -64,6 +66,67 @@ const getGlobalIdentifierWeight = ({
   weights: GetScoresParams['weights'];
 }): number | undefined => {
   return weights?.find((weight) => isGlobalWeight(weight))?.[identifierType];
+};
+
+const getUpdatedRisk = (risk: number, multiplier: number) => {
+  const odds = risk / (100 - risk);
+  const newOds = odds * multiplier;
+
+  return (100 * newOds) / (1 + newOds);
+};
+
+const applyWatchListScores = (
+  scores: SimpleRiskScore[] | FullRiskScore[],
+  watchListsMap: Record<string, string>
+) => {
+  return scores.map((item) => {
+    const watchListScore = watchListsMap[item.identifierValue];
+    // eslint-disable-next-line prefer-const
+    let { calculatedScoreNorm, calculatedLevel, notes, ...rest } = item;
+
+    if (watchListScore) {
+      let multiplier = 1;
+      switch (watchListScore) {
+        case 'Critical':
+          multiplier = 2;
+          break;
+        case 'Medium':
+          multiplier = 0.5;
+          break;
+        case 'Low':
+          multiplier = 0.25;
+          break;
+        default:
+          break;
+      }
+
+      const updatedScoreNorm = getUpdatedRisk(calculatedScoreNorm, multiplier);
+      const update = updatedScoreNorm - calculatedScoreNorm;
+      notes.push(
+        `Asset criticality modifier: ${update > 0 ? '+' : '-'}${Math.abs(update).toFixed(4)}`
+      );
+      calculatedScoreNorm = updatedScoreNorm;
+    }
+
+    if (calculatedScoreNorm < 20) {
+      calculatedLevel = 'Unknown';
+    } else if (calculatedScoreNorm >= 20 && calculatedScoreNorm < 40) {
+      calculatedLevel = 'Low';
+    } else if (calculatedScoreNorm >= 40 && calculatedScoreNorm < 70) {
+      calculatedLevel = 'Moderate';
+    } else if (calculatedScoreNorm >= 70 && calculatedScoreNorm < 90) {
+      calculatedLevel = 'High';
+    } else if (calculatedScoreNorm >= 90) {
+      calculatedLevel = 'Critical';
+    }
+
+    return {
+      calculatedScoreNorm,
+      calculatedLevel,
+      notes,
+      ...rest,
+    };
+  });
 };
 
 const buildReduceScript = ({
@@ -230,25 +293,51 @@ export const calculateRiskScores = async ({
     const userBuckets = response.aggregations.user?.buckets ?? [];
     const hostBuckets = response.aggregations.host?.buckets ?? [];
 
-    const scores = userBuckets
-      .map((bucket) =>
+    const watchListReponse = await esClient.search<never, WatchList[]>({
+      size: 9000,
+      index: 'watch-list*',
+    });
+
+    const wathcListMap = watchListReponse?.hits?.hits
+      ?.map((item) => item._source as unknown as WatchList)
+      ?.reduce(
+        (acc, val) => {
+          if (val.identifierField === 'host.name') {
+            acc.host[val.identifierValue] = val.riskLevel;
+          } else if (val.identifierField === 'user.name') {
+            acc.user[val.identifierValue] = val.riskLevel;
+          }
+          return acc;
+        },
+        { user: {}, host: {} } as WatchListMap
+      );
+
+
+    const userResponse = applyWatchListScores(
+      userBuckets.map((bucket) =>
         bucketToResponse({
           bucket,
           enrichInputs,
           identifierField: 'user.name',
           now,
         })
-      )
-      .concat(
-        hostBuckets.map((bucket) =>
-          bucketToResponse({
-            bucket,
-            enrichInputs,
-            identifierField: 'host.name',
-            now,
-          })
-        )
-      );
+      ),
+      wathcListMap.user
+    );
+
+    const hostResponse = applyWatchListScores(
+      hostBuckets.map((bucket) =>
+        bucketToResponse({
+          bucket,
+          enrichInputs,
+          identifierField: 'host.name',
+          now,
+        })
+      ),
+      wathcListMap.host
+    );
+
+    const scores = userResponse.concat(hostResponse);
 
     return {
       ...(debug ? { request, response } : {}),
