@@ -274,16 +274,130 @@ export const calculateRiskScores = async ({
       user: response.aggregations.user?.after_key,
     };
 
+    const hostIdentifierField = 'host.name';
+    const userIdentifierField = 'user.name';
+
+    const hosts = hostBuckets.map((bucket) =>
+      bucketToResponse({ bucket, identifierField: hostIdentifierField, now })
+    );
+
+    const users = userBuckets.map((bucket) =>
+      bucketToResponse({ bucket, identifierField: userIdentifierField, now })
+    );
+
+    const createMustQueryForEntityType = (field: string, entities: RiskScore[]) => ({
+      bool: {
+        must: [
+          { term: { id_field: { value: field } } },
+          { terms: { id_value: entities.map((entity) => entity.id_value) } },
+        ],
+      },
+    });
+
+    enum AssetCriticalityLevel {
+      NOT_IMPORTANT = 'NOT_IMPORTANT',
+      NORMAL = 'NORMAL',
+      IMPORTANT = 'IMPORTANT',
+      VERY_IMPORTANT = 'VERY_IMPORTANT',
+    }
+
+    const AssetCriticalityMultupliers = {
+      [AssetCriticalityLevel.NOT_IMPORTANT]: 0.5,
+      [AssetCriticalityLevel.NORMAL]: 1,
+      [AssetCriticalityLevel.IMPORTANT]: 1.5,
+      [AssetCriticalityLevel.VERY_IMPORTANT]: 2,
+    };
+
+    // console.log('hosts', JSON.stringify(hosts, null, 2));
+    // console.log('users', JSON.stringify(users, null, 2));
+
+    const assetCriticalityQuery = {
+      bool: {
+        should: [
+          createMustQueryForEntityType(hostIdentifierField, hosts),
+          createMustQueryForEntityType(userIdentifierField, users),
+        ],
+      },
+    };
+
+    const assetCriticalitiesResponse = await esClient.search({
+      // should be something like .asset-criticality, but kibana don't have permission for that index
+      index: 'risk-score.risk-asset-criticality',
+      size: 10000,
+      query: assetCriticalityQuery,
+    });
+    interface AssetCriticality {
+      id_value: string;
+      id_field: string;
+      criticality: AssetCriticalityLevel;
+    }
+    const assetCriticalities = assetCriticalitiesResponse.hits.hits.map(
+      (hit) => hit?._source
+    ) as AssetCriticality[];
+
+    const assetCriticalityToMap = (
+      acc: Map<string, string>,
+      assetCriticality: AssetCriticality
+    ) => {
+      if (!acc.has(assetCriticality.id_value)) {
+        acc.set(assetCriticality.id_value, assetCriticality.criticality);
+      }
+      return acc;
+    };
+
+    const hostCriticalitiesMap = assetCriticalities
+      .filter((assetCriticality) => assetCriticality.id_field === hostIdentifierField)
+      .reduce(assetCriticalityToMap, new Map());
+
+    const userCriticalitiesMap = assetCriticalities
+      .filter((assetCriticality) => assetCriticality.id_field === userIdentifierField)
+      .reduce(assetCriticalityToMap, new Map());
+
+    const applyCriticalityToEntity = (entity: RiskScore, criticalityMap: Map<string, string>) => {
+      const assetCriticality = criticalityMap.get(entity.id_value);
+      if (!assetCriticality) return entity;
+
+      const multiplier =
+        AssetCriticalityMultupliers[assetCriticality as AssetCriticalityLevel] ?? 1;
+
+      const priorOdds =
+        entity.calculated_score_norm / (100 - Math.min(entity.calculated_score_norm, 99));
+      const updatedOds = priorOdds * multiplier;
+      const finalRiskNorm = Math.floor((100 * updatedOds) / (1 + updatedOds));
+      let level = entity.calculated_level;
+
+      if (finalRiskNorm < 20) {
+        level = 'Unknown';
+      } else if (finalRiskNorm >= 20 && finalRiskNorm < 40) {
+        level = 'Low';
+      } else if (finalRiskNorm >= 40 && finalRiskNorm < 70) {
+        level = 'Moderate';
+      } else if (finalRiskNorm >= 70 && finalRiskNorm < 90) {
+        level = 'High';
+      } else if (finalRiskNorm >= 90) {
+        level = 'Critical';
+      }
+
+      return {
+        ...entity,
+        calculated_score_norm: finalRiskNorm,
+        calculated_level: level,
+      };
+    };
+
+    const hostsWithCriticalitiesApplied = hosts.map((host) =>
+      applyCriticalityToEntity(host, hostCriticalitiesMap)
+    );
+    const userWithCriticalitiesApplied = users.map((user) =>
+      applyCriticalityToEntity(user, userCriticalitiesMap)
+    );
+
     return {
       ...(debug ? { request, response } : {}),
       after_keys: afterKeys,
       scores: {
-        host: hostBuckets.map((bucket) =>
-          bucketToResponse({ bucket, identifierField: 'host.name', now })
-        ),
-        user: userBuckets.map((bucket) =>
-          bucketToResponse({ bucket, identifierField: 'user.name', now })
-        ),
+        host: hostsWithCriticalitiesApplied,
+        user: userWithCriticalitiesApplied,
       },
     };
   });

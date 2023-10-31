@@ -114,6 +114,27 @@ export class RiskEngineDataClient {
       return result;
     }
 
+    await this.options.esClient.indices.create({
+      // should be something like .asset-criticality, but kibana user don't have permission for that index yet
+      index: 'risk-score.risk-asset-criticality',
+      mappings: {
+        properties: {
+          '@timestamp': {
+            type: 'date',
+          },
+          criticality: {
+            type: 'keyword',
+          },
+          id_field: {
+            type: 'keyword',
+          },
+          id_value: {
+            type: 'keyword',
+          },
+        },
+      },
+    });
+
     return result;
   }
 
