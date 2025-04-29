@@ -65,3 +65,41 @@ export const logSearchRequest = (searchRequest: estypes.SearchRequest): string =
 
   return `GET ${url}`;
 };
+
+export const logSearchRequestAsObject = (searchRequest: estypes.SearchRequest): {
+  url: string;
+  body?: Record<string, unknown>;
+} => {
+  const { index } = searchRequest;
+
+  const params = {
+    ...omit(searchRequest, [...BODY_FIELDS, 'index', 'body', 'querystring']),
+    ...searchRequest.querystring,
+  };
+
+  const body = {
+    ...pick(searchRequest, [...BODY_FIELDS, 'querystring']),
+    ...(searchRequest.body as Record<string, unknown>),
+  };
+
+  const urlParams = Object.entries(params)
+    .reduce<string[]>((acc, [key, value]) => {
+      if (value != null) {
+        acc.push(`${key}=${value}`);
+      }
+
+      return acc;
+    }, [])
+    .join('&');
+
+  const url = `/${index}/_search${urlParams ? `?${urlParams}` : ''}`;
+
+  if (body) {
+    return {
+      url: `POST ${url}`,
+      body,
+    };
+  }
+
+  return `GET ${url}`;
+};

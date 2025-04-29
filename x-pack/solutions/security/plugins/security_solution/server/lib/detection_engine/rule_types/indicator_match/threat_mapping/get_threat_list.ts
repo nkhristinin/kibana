@@ -13,6 +13,7 @@ import type {
   ThreatListDoc,
   GetSortForThreatList,
 } from './types';
+import { logSearchRequestAsObject } from '../../utils/logged_requests';
 
 /**
  * This should not exceed 10000 (10k)
@@ -38,7 +39,9 @@ export const getThreatList = async ({
     completeRule: {
       ruleParams: { threatQuery, threatLanguage, threatIndex },
     },
+    ruleDebug,
   } = sharedParams;
+
   const calculatedPerPage = perPage ?? INDICATOR_PER_PAGE;
   if (calculatedPerPage > 10000) {
     throw new TypeError('perPage cannot exceed the size of 10000');
@@ -57,10 +60,7 @@ export const getThreatList = async ({
     `Querying the indicator items from the index: "${threatIndex}" with searchAfter: "${searchAfter}" for up to ${calculatedPerPage} indicator items`
   );
 
-  const response = await esClient.search<
-    ThreatListDoc,
-    Record<string, estypes.AggregationsAggregate>
-  >({
+  const query = {
     ...threatListConfig,
     query: queryFilter,
     search_after: searchAfter,
@@ -72,8 +72,14 @@ export const getThreatList = async ({
     track_total_hits: false,
     size: calculatedPerPage,
     pit: { id: pitId },
-  });
+  };
 
+  const response = await esClient.search<
+    ThreatListDoc,
+    Record<string, estypes.AggregationsAggregate>
+  >(query);
+
+  ruleDebug?.addRequest('Get threat list', logSearchRequestAsObject(query), response);
   ruleExecutionLogger.debug(`Retrieved indicator items of size: ${response.hits.hits.length}`);
 
   reassignPitId(response.pit_id);

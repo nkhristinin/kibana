@@ -102,6 +102,9 @@ export interface SecuritySharedParams<TParams extends RuleParams = RuleParams> {
   eventsTelemetry: ITelemetryEventsSender | undefined;
   licensing: LicensingPluginSetup;
   scheduleNotificationResponseActionsService: ScheduleNotificationResponseActionsService;
+  ruleDebug: {
+    addDebugMessage: (message: string) => void;
+  };
 }
 
 type SecurityActionGroupId = 'default';

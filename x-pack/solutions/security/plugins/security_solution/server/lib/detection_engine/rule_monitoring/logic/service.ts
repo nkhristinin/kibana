@@ -127,7 +127,13 @@ export const createRuleMonitoringService = (
       return withSecuritySpan(
         'IRuleMonitoringService.createRuleExecutionLogClientForExecutors',
         async () => {
-          const { savedObjectsClient, context, ruleMonitoringService, ruleResultService } = params;
+          const {
+            savedObjectsClient,
+            context,
+            ruleMonitoringService,
+            ruleResultService,
+            ruleDebug,
+          } = params;
 
           invariant(coreSetup, 'Dependencies of RuleMonitoringService are not initialized');
           invariant(pluginsSetup, 'Dependencies of RuleMonitoringService are not initialized');
@@ -151,7 +157,8 @@ export const createRuleMonitoringService = (
             childLogger,
             context,
             ruleMonitoringService,
-            ruleResultService
+            ruleResultService,
+            ruleDebug
           );
         }
       );

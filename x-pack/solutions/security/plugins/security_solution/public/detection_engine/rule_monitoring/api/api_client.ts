@@ -20,6 +20,11 @@ import {
   SETUP_HEALTH_URL,
 } from '../../../../common/api/detection_engine/rule_monitoring';
 
+import {
+  getRuleDebugLogByExecutionIdUrl,
+  getRuleExecutionsWithDebugLogUrl,
+} from '../../../../common/api/detection_engine/rule_debug';
+
 import type {
   FetchRuleExecutionEventsArgs,
   FetchRuleExecutionResultsArgs,
@@ -109,6 +114,44 @@ export const api: IRuleMonitoringApiClient = {
         run_type_filters: runTypeFilters?.sort()?.join(','),
       },
       signal,
+    });
+  },
+
+  fetchRuleExecutionsWithDebugLog: ({
+    ruleId,
+    signal,
+  }: {
+    ruleId: string;
+    signal: AbortSignal;
+  }) => {
+    return http().fetch(getRuleExecutionsWithDebugLogUrl(ruleId), {
+      version: '1',
+      method: 'GET',
+      signal,
+    });
+  },
+
+  fetchRuleDebugLogByExecutionId: ({
+    ruleId,
+    executionId,
+    signal,
+    page,
+    perPage,
+  }: {
+    ruleId: string;
+    executionId: string;
+    signal: AbortSignal;
+    page: number;
+    perPage: number;
+  }) => {
+    return http().fetch(getRuleDebugLogByExecutionIdUrl(ruleId, executionId, page, perPage), {
+      version: '1',
+      method: 'GET',
+      signal,
+      query: {
+        page,
+        per_page: perPage,
+      },
     });
   },
 };

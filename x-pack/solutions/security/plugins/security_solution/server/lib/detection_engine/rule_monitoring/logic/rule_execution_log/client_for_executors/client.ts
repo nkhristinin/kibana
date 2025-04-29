@@ -48,7 +48,8 @@ export const createRuleExecutionLogClientForExecutors = (
   logger: Logger,
   context: RuleExecutionContext,
   ruleMonitoringService: PublicRuleMonitoringService,
-  ruleResultService: PublicRuleResultService
+  ruleResultService: PublicRuleResultService,
+  ruleDebug
 ): IRuleExecutionLogForExecutors => {
   const baseCorrelationIds = getCorrelationIds(context);
   const baseLogSuffix = baseCorrelationIds.getLogSuffix();
@@ -108,6 +109,7 @@ export const createRuleExecutionLogClientForExecutors = (
     const message = messages.join(' ');
     writeMessageToConsole(message, logLevel, baseLogMeta);
     writeMessageToEventLog(message, logLevel);
+    ruleDebug.addDebugMessage(message);
   };
 
   const writeMessageToConsole = (message: string, logLevel: LogLevel, logMeta: ExtMeta): void => {

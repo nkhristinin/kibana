@@ -10,6 +10,7 @@ import type { EventCountOptions, EventsOptions, EventDoc } from './types';
 import { getQueryFilter } from '../../utils/get_query_filter';
 import { singleSearchAfter } from '../../utils/single_search_after';
 import { buildEventsSearchQuery } from '../../utils/build_events_query';
+import { logSearchRequestAsObject } from '../../utils/logged_requests';
 
 export const MAX_PER_PAGE = 9000;
 
@@ -34,6 +35,7 @@ export const getEventList = async ({
     completeRule: {
       ruleParams: { query, language },
     },
+    ruleDebug,
   } = sharedParams;
   const calculatedPerPage = perPage ?? MAX_PER_PAGE;
   if (calculatedPerPage > 10000) {
@@ -68,6 +70,7 @@ export const getEventList = async ({
     trackTotalHits: false,
     runtimeMappings,
     overrideBody: eventListConfig,
+    ruleDebug,
   });
 
   ruleExecutionLogger.debug(`Retrieved events items of size: ${searchResult.hits.hits.length}`);
@@ -88,6 +91,7 @@ export const getEventCount = async ({
   secondaryTimestamp,
   exceptionFilter,
   indexFields,
+  ruleDebug,
 }: EventCountOptions): Promise<number> => {
   const queryFilter = getQueryFilter({
     query,
@@ -108,10 +112,12 @@ export const getEventCount = async ({
     searchAfterSortIds: undefined,
     runtimeMappings: undefined,
   }).query;
-  const response = await esClient.count({
+  const searchRequest = {
     query: eventSearchQueryBodyQuery,
     ignore_unavailable: true,
     index,
-  });
+  };
+  const response = await esClient.count(searchRequest);
+  ruleDebug?.addRequest('Event count', logSearchRequestAsObject(searchRequest), response);
   return response.count;
 };

@@ -20,6 +20,7 @@ import type { EndpointAppContextService } from './endpoint/endpoint_app_context_
 import { AssetInventoryDataClient } from './lib/asset_inventory/asset_inventory_data_client';
 import { createDetectionRulesClient } from './lib/detection_engine/rule_management/logic/detection_rules_client/detection_rules_client';
 import type { IRuleMonitoringService } from './lib/detection_engine/rule_monitoring';
+import type { RuleDebugService } from './lib/detection_engine/rule_debug';
 import { AssetCriticalityDataClient } from './lib/entity_analytics/asset_criticality';
 import { getApiKeyManager } from './lib/entity_analytics/entity_store/auth/api_key';
 import { EntityStoreDataClient } from './lib/entity_analytics/entity_store/entity_store_data_client';
@@ -57,6 +58,7 @@ interface ConstructorOptions {
   kibanaBranch: string;
   buildFlavor: BuildFlavor;
   productFeaturesService: ProductFeaturesService;
+  ruleDebugService: RuleDebugService;
 }
 
 export class RequestContextFactory implements IRequestContextFactory {
@@ -79,6 +81,7 @@ export class RequestContextFactory implements IRequestContextFactory {
       ruleMonitoringService,
       siemMigrationsService,
       productFeaturesService,
+      ruleDebugService,
     } = options;
 
     const { lists, ruleRegistry, security } = plugins;
@@ -283,6 +286,9 @@ export class RequestContextFactory implements IRequestContextFactory {
           logger,
           experimentalFeatures: config.experimentalFeatures,
         });
+      }),
+      getRuleDebugService: memoize(() => {
+        return ruleDebugService;
       }),
     };
   }

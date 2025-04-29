@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
 import moment from 'moment';
@@ -26,6 +26,7 @@ import {
   EuiSwitch,
   EuiBasicTable,
   EuiButton,
+  EuiButtonEmpty,
   EuiDescriptionList,
 } from '@elastic/eui';
 
@@ -72,7 +73,7 @@ import type {
 } from '../../../../../common/store/inputs/model';
 import { isAbsoluteTimeRange, isRelativeTimeRange } from '../../../../../common/store/inputs/model';
 import { SourcererScopeName } from '../../../../../sourcerer/store/model';
-import { useExecutionResults } from '../../../../rule_monitoring';
+import { useExecutionResults, useExecutionsWithDebugLog } from '../../../../rule_monitoring';
 import { useRuleDetailsContext } from '../rule_details_context';
 import { useExpandableRows } from '../../../../rule_monitoring/components/basic/tables/use_expandable_rows';
 import { TextBlock } from '../../../../rule_monitoring/components/basic/text/text_block';
@@ -86,6 +87,7 @@ import {
 } from './execution_log_columns';
 import { ExecutionLogSearchBar } from './execution_log_search_bar';
 import { EventLogEventTypes } from '../../../../../common/lib/telemetry';
+import { ExecutionDebugLog } from './execution_debug_log';
 
 const EXECUTION_UUID_FIELD_NAME = 'kibana.alert.rule.execution.uuid';
 
@@ -113,6 +115,32 @@ interface CachedGlobalQueryState {
   query: Query;
   timerange: AbsoluteTimeRange | RelativeTimeRange;
 }
+
+const DebugLogActions = ({ executionId, ruleId }) => {
+  const [showModal, setShowModal] = useState(false);
+
+  return (
+    <>
+      <EuiButtonEmpty
+        size="xs"
+        // color="transparent"
+        data-test-subj="action-log"
+        onClick={(e) => {
+          setShowModal(true);
+        }}
+      >
+        Show log
+      </EuiButtonEmpty>
+      {showModal && (
+        <ExecutionDebugLog
+          onCloseModal={() => setShowModal(false)}
+          ruleId={ruleId}
+          executionId={executionId}
+        />
+      )}
+    </>
+  );
+};
 
 const ExecutionLogTableComponent: React.FC<ExecutionLogTableProps> = ({
   ruleId,
@@ -232,6 +260,12 @@ const ExecutionLogTableComponent: React.FC<ExecutionLogTableProps> = ({
   });
   const items = events?.events ?? [];
   const maxEvents = events?.total ?? 0;
+
+  const { data: executionsWithDebugLog } = useExecutionsWithDebugLog({
+    ruleId,
+  });
+
+  console.log('executionsWithDebugLog', executionsWithDebugLog);
 
   // Cache UUID field from data view as it can be expensive to iterate all data view fields
   const uuidDataViewField = useMemo(
@@ -418,8 +452,19 @@ const ExecutionLogTableComponent: React.FC<ExecutionLogTableProps> = ({
       {
         field: EXECUTION_UUID_FIELD_NAME,
         name: i18n.COLUMN_ACTIONS,
-        width: '64px',
+        width: '140px',
         actions: [
+          {
+            name: 'Log',
+            description: 'Show log',
+
+            render: (executionEvent) => {
+              if (!executionsWithDebugLog?.includes(executionEvent?.execution_uuid)) return null;
+              return (
+                <DebugLogActions ruleId={ruleId} executionId={executionEvent?.execution_uuid} />
+              );
+            },
+          },
           {
             name: 'Edit',
             isPrimary: true,

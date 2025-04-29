@@ -83,6 +83,7 @@ import { PolicyWatcher } from './endpoint/lib/policy/license_watch';
 import previewPolicy from './lib/detection_engine/routes/index/preview_policy.json';
 import type { IRuleMonitoringService } from './lib/detection_engine/rule_monitoring';
 import { createRuleMonitoringService } from './lib/detection_engine/rule_monitoring';
+import { RuleDebugService } from './lib/detection_engine/rule_debug';
 // eslint-disable-next-line no-restricted-imports
 import {
   isLegacyNotificationRuleExecutor,
@@ -148,6 +149,7 @@ export class Plugin implements ISecuritySolutionPlugin {
   private readonly telemetryReceiver: ITelemetryReceiver;
   private readonly telemetryEventsSender: ITelemetryEventsSender;
   private readonly asyncTelemetryEventsSender: IAsyncTelemetryEventsSender;
+  private readonly ruleDebugService: RuleDebugService;
 
   private lists: ListPluginSetup | undefined; // TODO: can we create ListPluginStart?
   private licensing$!: Observable<ILicense>;
@@ -179,6 +181,7 @@ export class Plugin implements ISecuritySolutionPlugin {
     );
 
     this.ruleMonitoringService = createRuleMonitoringService(this.config, this.logger);
+    this.ruleDebugService = new RuleDebugService();
     this.telemetryEventsSender = new TelemetryEventsSender(this.logger);
     this.asyncTelemetryEventsSender = new AsyncTelemetryEventsSender(this.logger);
     this.telemetryReceiver = new TelemetryReceiver(this.logger);
@@ -279,6 +282,7 @@ export class Plugin implements ISecuritySolutionPlugin {
       kibanaBranch: pluginContext.env.packageInfo.branch,
       buildFlavor: pluginContext.env.packageInfo.buildFlavor,
       productFeaturesService,
+      ruleDebugService: this.ruleDebugService,
     });
 
     productFeaturesService.registerApiAccessControl(core.http);
@@ -362,6 +366,7 @@ export class Plugin implements ISecuritySolutionPlugin {
         endpointAppContextService: this.endpointAppContextService,
         osqueryCreateActionService: plugins.osquery?.createActionService,
       }),
+      ruleDebugService: this.ruleDebugService,
     };
 
     const securityRuleTypeWrapper = createSecurityRuleTypeWrapper(securityRuleTypeOptions);
@@ -506,6 +511,10 @@ export class Plugin implements ISecuritySolutionPlugin {
         plugins.guidedOnboarding?.registerGuideConfig(siemGuideId, getSiemGuideConfig());
 
         this.siemMigrationsService.setup({ esClusterClient: coreStart.elasticsearch.client });
+
+        this.ruleDebugService.setup({
+          esClustierClient: coreStart.elasticsearch.client.asInternalUser,
+        });
       })
       .catch(() => {}); // it shouldn't reject, but just in case
 

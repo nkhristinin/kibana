@@ -110,6 +110,7 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
     eventsTelemetry,
     licensing,
     scheduleNotificationResponseActionsService,
+    ruleDebugService,
   }) =>
   (type) => {
     const { alertIgnoreFields: ignoreFields, alertMergeStrategy: mergeStrategy } = config;
@@ -185,10 +186,16 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
 
           const esClient = scopedClusterClient.asCurrentUser;
 
+          const ruleDebug = ruleDebugService.createClient({
+            ruleId: rule.id,
+            executionId,
+          });
+
           const ruleExecutionLogger = await ruleExecutionLoggerFactory({
             savedObjectsClient,
             ruleMonitoringService,
             ruleResultService,
+            ruleDebug,
             context: {
               executionId,
               ruleId: rule.id,
@@ -427,6 +434,9 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
 
             if (!skipExecution) {
               for (const tuple of tuples) {
+                ruleDebug.addDebugMessage(
+                  `Searching for signals between ${tuple.from} and ${tuple.to}`
+                );
                 const runResult = await type.executor({
                   ...options,
                   services,
@@ -460,6 +470,7 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
                     eventsTelemetry,
                     licensing,
                     scheduleNotificationResponseActionsService,
+                    ruleDebug,
                   },
                 });
 

@@ -122,6 +122,7 @@ export const createThreatSignals = async ({
     secondaryTimestamp,
     exceptionFilter,
     indexFields: inputIndexFields,
+    ruleDebug: sharedParams.ruleDebug,
   });
 
   ruleExecutionLogger.debug(`Total event count: ${eventCount}`);

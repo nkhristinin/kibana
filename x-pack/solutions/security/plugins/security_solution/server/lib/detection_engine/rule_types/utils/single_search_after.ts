@@ -23,7 +23,7 @@ import type { TimestampOverride } from '../../../../../common/api/detection_engi
 import { withSecuritySpan } from '../../../../utils/with_security_span';
 import type { IRuleExecutionLogForExecutors } from '../../rule_monitoring';
 import type { RulePreviewLoggedRequest } from '../../../../../common/api/detection_engine/rule_preview/rule_preview.gen';
-import { logSearchRequest } from './logged_requests';
+import { logSearchRequest, logSearchRequestAsObject } from './logged_requests';
 
 export interface SingleSearchAfterParams {
   aggregations?: Record<string, estypes.AggregationsAggregationContainer>;
@@ -66,6 +66,7 @@ export const singleSearchAfter = async <
   additionalFilters,
   overrideBody,
   loggedRequestsConfig,
+  ruleDebug,
 }: SingleSearchAfterParams): Promise<{
   searchResult: SignalSearchResponse<TAggregations>;
   searchDuration: string;
@@ -120,6 +121,12 @@ export const singleSearchAfter = async <
           duration: Math.round(end - start),
         });
       }
+
+      ruleDebug?.addRequest(
+        'Find events',
+        logSearchRequestAsObject(searchAfterQuery),
+        nextSearchAfterResult
+      );
 
       return {
         searchResult: nextSearchAfterResult,

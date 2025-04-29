@@ -81,6 +81,7 @@ export const searchAfterAndBulkCreateFactory = async ({
     tuple,
     ruleExecutionLogger,
     listClient,
+    ruleDebug,
   } = sharedParams;
 
   return withSecuritySpan('searchAfterAndBulkCreate', async () => {
@@ -127,6 +128,7 @@ export const searchAfterAndBulkCreateFactory = async ({
             sortIds,
             searchingIteration
           ),
+          ruleDebug
         });
         toReturn = mergeReturns([
           toReturn,
@@ -140,6 +142,7 @@ export const searchAfterAndBulkCreateFactory = async ({
           }),
         ]);
         loggedRequests.push(...singleSearchLoggedRequests);
+    
         // determine if there are any candidate signals to be processed
         const totalHits = getTotalHitsValue(searchResult.hits.total);
         const lastSortIds = getSafeSortIds(

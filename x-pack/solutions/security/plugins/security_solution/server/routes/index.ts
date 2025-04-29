@@ -19,6 +19,7 @@ import { registerRuleExceptionsRoutes } from '../lib/detection_engine/rule_excep
 import { registerRuleManagementRoutes } from '../lib/detection_engine/rule_management';
 import { registerRuleMonitoringRoutes } from '../lib/detection_engine/rule_monitoring';
 import { registerRulePreviewRoutes } from '../lib/detection_engine/rule_preview';
+import { registerRuleDebugLogRoutes } from '../lib/detection_engine/rule_debug';
 
 import { createIndexRoute } from '../lib/detection_engine/routes/index/create_index_route';
 import { readIndexRoute } from '../lib/detection_engine/routes/index/read_index_route';
@@ -77,6 +78,7 @@ export const initRoutes = (
   registerManageExceptionsRoutes(router);
   registerRuleManagementRoutes(router, config, ml, logger);
   registerRuleMonitoringRoutes(router);
+  registerRuleDebugLogRoutes(router);
   registerRulePreviewRoutes(
     router,
     config,

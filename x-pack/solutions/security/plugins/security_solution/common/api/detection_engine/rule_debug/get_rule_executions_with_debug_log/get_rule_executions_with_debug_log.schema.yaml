@@ -1,0 +1,33 @@
+openapi: 3.0.0
+info:
+  title: Get Rule Debug Log API endpoint
+  version: '1'
+paths:
+  /internal/detection_engine/rules/{ruleId}/executions_with_debug_log:
+    get:
+      x-labels: [ess, serverless]
+      x-internal: true
+      x-codegen-enabled: true
+      operationId: GetRuleExecutionsWithDebugLog
+      summary: Returns rule exections with debug log
+      tags:
+        - Rule Debug Log API
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          description: Saved object ID of the rule to get debug log for
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        200:
+          description: Indicates a successful call
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+
