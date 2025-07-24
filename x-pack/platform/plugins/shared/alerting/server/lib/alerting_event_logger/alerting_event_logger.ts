@@ -395,14 +395,14 @@ export class AlertingEventLogger {
     this.eventLogger.logEvent(this.event);
   }
 
-  public reportGap({
+  public async reportGap({
     gap,
   }: {
     gap: {
       lte: string;
       gte: string;
     };
-  }): void {
+  }): Promise<void> {
     if (!this.isInitialized || !this.context || !this.ruleData) {
       throw new Error('AlertingEventLogger not initialized');
     }
@@ -411,7 +411,7 @@ export class AlertingEventLogger {
       range: gap,
     });
 
-    this.eventLogger.logEvent(
+    await this.eventLogger.logEventAsync(
       createGapRecord(this.context, this.ruleData, this.relatedSavedObjects, gapToReport.toObject())
     );
   }

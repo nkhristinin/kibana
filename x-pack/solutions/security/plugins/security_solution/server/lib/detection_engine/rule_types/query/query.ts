@@ -54,6 +54,12 @@ export const queryExecutor = async ({
     const license = await firstValueFrom(licensing.license$);
     const hasPlatinumLicense = license.hasAtLeast('platinum');
 
+    const wait = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    };
+
+    await wait();
+
     const result =
       // TODO: replace this with getIsAlertSuppressionActive function
       ruleParams.alertSuppression?.groupBy != null && hasPlatinumLicense

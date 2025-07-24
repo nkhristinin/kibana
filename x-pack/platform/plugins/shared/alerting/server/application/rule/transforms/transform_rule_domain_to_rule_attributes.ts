@@ -84,5 +84,6 @@ export const transformRuleDomainToRuleAttributes = ({
     ...(rule.alertDelay !== undefined ? { alertDelay: rule.alertDelay } : {}),
     ...(rule.flapping !== undefined ? { flapping: rule.flapping } : {}),
     artifacts: artifactsWithRefs,
+    ...(rule.gapAutoFill !== undefined ? { gapAutoFill: rule.gapAutoFill } : {}),
   } as RawRule;
 };

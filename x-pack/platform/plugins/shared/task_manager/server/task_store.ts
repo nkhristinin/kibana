@@ -458,7 +458,8 @@ export class TaskStore {
     { sort = [{ 'task.runAt': 'asc' }], ...opts }: SearchOpts = {},
     limitResponse: boolean = false
   ): Promise<FetchResult> {
-    return this.search({ ...opts, sort }, limitResponse);
+    console.log('fetch', JSON.stringify(opts, null, 2), sort);
+    return this.search({ ...opts, size: 500, sort }, limitResponse);
   }
 
   /**

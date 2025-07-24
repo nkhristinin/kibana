@@ -19,6 +19,9 @@ import {
 import { nanosToMillis } from '@kbn/event-log-plugin/server';
 import { getErrorSource, isUserError } from '@kbn/task-manager-plugin/server/task_running';
 import { ATTACK_DISCOVERY_SCHEDULES_ALERT_TYPE_ID } from '@kbn/elastic-assistant-common';
+import dateMath from '@kbn/datemath';
+
+import type { GapAutoFill } from '@kbn/alerting-types';
 import { ActionScheduler, type RunResult } from './action_scheduler';
 import type {
   RuleRunnerErrorStackTraceLog,
@@ -77,6 +80,8 @@ import {
 } from './lib';
 import { isClusterBlockError } from '../lib/error_with_type';
 import { getTrackedExecutions } from './lib/get_tracked_execution';
+import { batchBackfillRuleGaps } from '../application/rule/methods/bulk_fill_gaps_by_rule_ids/batch_backfill_rule_gaps';
+import type { RulesClientContext } from '../rules_client/types';
 
 const FALLBACK_RETRY_INTERVAL = '5m';
 const CONNECTIVITY_RETRY_INTERVAL = '5m';
@@ -219,6 +224,7 @@ export class TaskRunner<
       monitoring?: RawRuleMonitoring;
       nextRun?: string | null;
       lastRun?: RawRuleLastRun | null;
+      gapAutoFill?: GapAutoFill | null;
     }
   ) {
     const client = this.context.elasticsearch.client.asInternalUser;
@@ -577,9 +583,11 @@ export class TaskRunner<
   private async processRunResults({
     schedule,
     stateWithMetrics,
+    validatedRuleData,
   }: {
     schedule: Result<IntervalSchedule, Error>;
     stateWithMetrics: Result<RuleTaskStateAndMetrics, Error>;
+    validatedRuleData: RunRuleParams<Params>;
   }) {
     const { executionStatus: execStatus, executionMetrics: execMetrics } =
       await this.timer.runWithTimer(TaskRunnerTimerSpan.ProcessRuleRun, async () => {
@@ -625,10 +633,54 @@ export class TaskRunner<
           runDate: this.runDate,
         });
 
+        // Handle gap filling after rule execution
         const gap = this.ruleMonitoring.getMonitoring()?.run?.last_run?.metrics?.gap_range;
         if (gap) {
-          this.alertingEventLogger.reportGap({
+          await this.alertingEventLogger.reportGap({
             gap,
+          });
+          this.context.getEventLogClient(validatedRuleData.fakeRequest).refreshIndex();
+        }
+
+        // Check for gap auto-fill settings (you can make this configurable)
+        const gapAutoFillSettings = validatedRuleData.rule.gapAutoFill;
+        const shouldCheckGaps = (settings: typeof gapAutoFillSettings) => {
+          if (gapAutoFillSettings === undefined || gapAutoFillSettings === null) {
+            return false;
+          }
+          const { checkInterval, lastCheckedDate } = settings;
+
+          if (!lastCheckedDate) {
+            return true;
+          }
+          const checkIntervalDuration = parseDuration(checkInterval);
+
+          const now = Date.now();
+
+          return now - checkIntervalDuration > new Date(lastCheckedDate).getTime();
+        };
+
+        const shouldFillGaps = gap || shouldCheckGaps(gapAutoFillSettings);
+        console.log('shouldFillGaps', shouldFillGaps, gap, shouldCheckGaps(gapAutoFillSettings));
+        const newGapAutoFillSettings: GapAutoFill | null = gapAutoFillSettings || {};
+        if (shouldFillGaps) {
+          await withAlertingSpan('alerting:fill-gaps', async () => {
+            const rulesClient = await this.context.rulesClientFactory.create(
+              validatedRuleData.fakeRequest,
+              this.context.savedObjects
+            );
+            // Access the internal context - this is the proper way to get RulesClientContext
+            const rulesClientContext = (rulesClient as { context: RulesClientContext }).context;
+
+            newGapAutoFillSettings.lastCheckedDate = new Date().toISOString();
+            await batchBackfillRuleGaps(rulesClientContext, {
+              rule: { id: validatedRuleData.rule.id, name: validatedRuleData.rule.name },
+              range: {
+                start: dateMath.parse(gapAutoFillSettings?.range)?.toISOString() ?? '',
+                end: new Date().toISOString(),
+              },
+              maxGapCountPerRule: 100, // You can make this configurable
+            });
           });
         }
 
@@ -650,6 +702,7 @@ export class TaskRunner<
             nextRun,
             lastRun: lastRunToRaw(lastRun),
             monitoring: this.ruleMonitoring.getMonitoring() as RawRuleMonitoring,
+            gapAutoFill: newGapAutoFillSettings,
           });
         }
 
@@ -681,8 +734,9 @@ export class TaskRunner<
 
     let stateWithMetrics: Result<RuleTaskStateAndMetrics, Error>;
     let schedule: Result<IntervalSchedule, Error>;
+    let validatedRuleData: RunRuleParams<Params>;
     try {
-      const validatedRuleData = await this.prepareToRun();
+      validatedRuleData = await this.prepareToRun();
 
       stateWithMetrics = asOk(
         await withAlertingSpan('alerting:run', () => this.runRule(validatedRuleData))
@@ -695,7 +749,7 @@ export class TaskRunner<
     }
 
     await withAlertingSpan('alerting:process-run-results-and-update-rule', () =>
-      this.processRunResults({ schedule, stateWithMetrics })
+      this.processRunResults({ schedule, stateWithMetrics, validatedRuleData })
     );
 
     const transformRunStateToTaskState = (

@@ -56,6 +56,7 @@ import type { ElasticsearchError } from '../lib';
 import type { ConnectorAdapterRegistry } from '../connector_adapters/connector_adapter_registry';
 import type { RulesSettingsService } from '../rules_settings';
 import type { MaintenanceWindowsService } from './maintenance_windows';
+import type { RulesClientFactory } from '../rules_client_factory';
 
 export interface RuleTaskRunResult {
   state: RuleTaskState;
@@ -174,6 +175,7 @@ export interface TaskRunnerContext {
   maintenanceWindowsService: MaintenanceWindowsService;
   maxAlerts: number;
   ruleTypeRegistry: RuleTypeRegistry;
+  rulesClientFactory: RulesClientFactory;
   rulesSettingsService: RulesSettingsService;
   savedObjects: SavedObjectsServiceStart;
   share: SharePluginStart;

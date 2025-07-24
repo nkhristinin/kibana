@@ -701,6 +701,7 @@ export class AlertingPlugin {
       }),
       maxAlerts: this.config.rules.run.alerts.max,
       ruleTypeRegistry: this.ruleTypeRegistry!,
+      rulesClientFactory,
       rulesSettingsService: new RulesSettingsService({
         cacheInterval: this.config.rulesSettings.cacheInterval,
         getRulesSettingsClientWithRequest,

@@ -241,6 +241,7 @@ export const transformRuleAttributesToRuleDomain = <Params extends RuleParams = 
     ...(esRule.legacyId !== undefined ? { legacyId: esRule.legacyId } : {}),
     ...(esRule.flapping !== undefined ? { flapping: esRule.flapping } : {}),
     artifacts: ruleDomainArtifacts,
+    gapAutoFill: esRule.gapAutoFill ?? null,
   };
 
   // Bad casts, but will fix once we fix all rule types

@@ -63,6 +63,22 @@ export class EventLogger implements IEventLogger {
 
   // non-blocking, but spawns an async task to do the work
   logEvent(eventProperties: IEvent): void {
+    this._logEvent(eventProperties, indexEventDoc);
+  }
+
+  logEventAsync(eventProperties: IEvent): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this._logEvent(eventProperties, async (...args) => {
+        await indexEventDocAsync(...args);
+        resolve();
+      });
+    });
+  }
+
+  _logEvent(
+    eventProperties: IEvent,
+    fn: (esContext: EsContext, doc: Doc) => void | Promise<void>
+  ): void {
     const event: IEvent = {};
     const fixedProperties = {
       ecs: {
@@ -95,7 +111,7 @@ export class EventLogger implements IEventLogger {
     };
 
     if (this.eventLogService.isIndexingEntries()) {
-      indexEventDoc(this.esContext, doc);
+      fn(this.esContext, doc);
     }
 
     if (this.eventLogService.isLoggingEntries()) {
@@ -184,8 +200,12 @@ function logUpdateEventDoc(logger: Logger, docs: Array<Required<Doc>>): void {
   logger.info(`event updated: ${JSON.stringify(docs.length)}`);
 }
 
-function indexEventDoc(esContext: EsContext, doc: Doc): void {
-  esContext.esAdapter.indexDocument(doc);
+async function indexEventDoc(esContext: EsContext, doc: Doc): Promise<void> {
+  await esContext.esAdapter.indexDocument(doc);
+}
+
+async function indexEventDocAsync(esContext: EsContext, doc: Doc): Promise<void> {
+  await esContext.esAdapter.indexDocumentAsync(doc);
 }
 
 async function updateEventDocs(

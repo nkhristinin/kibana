@@ -90,7 +90,7 @@ import {
 } from './apm_field_names';
 import { buildTimeRangeFilter } from './build_events_query';
 
-export const MAX_RULE_GAP_RATIO = 4;
+export const MAX_RULE_GAP_RATIO = 1;
 
 export const hasReadIndexPrivileges = async (args: {
   privileges: Privilege;

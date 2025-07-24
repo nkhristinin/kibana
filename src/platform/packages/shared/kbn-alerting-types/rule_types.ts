@@ -226,6 +226,12 @@ export interface Artifacts {
   };
 }
 
+export interface GapAutoFill {
+  range: string;
+  checkInterval: string;
+  lastCheckedDate: Date | null;
+}
+
 export interface Rule<Params extends RuleTypeParams = never> {
   id: string;
   enabled: boolean;
@@ -263,6 +269,7 @@ export interface Rule<Params extends RuleTypeParams = never> {
   alertDelay?: AlertDelay | null;
   flapping?: Flapping | null;
   artifacts?: Artifacts | null;
+  gapAutoFill?: GapAutoFill | null;
 }
 
 export type SanitizedRule<Params extends RuleTypeParams = never> = Omit<

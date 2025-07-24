@@ -185,20 +185,41 @@ export class BackfillClient {
       );
     }
 
-    // Bulk create the saved objects in chunks of 10 to manage resource usage
-    const chunkSize = 10;
+    let transformedResponse: ScheduleBackfillResults;
     const allSavedObjects: Array<SavedObject<AdHocRunSO>> = [];
+    // measure the time it takes to create the saved objects using performance.now()
+    const startTime = performance.now();
+    await withSpan(
+      { name: 'backfillClient.bulkQueue.createSavedObjects', type: 'rule' },
+      async () => {
+        // Bulk create the saved objects in chunks of 10 to manage resource usage
+        const chunkSize = 10;
 
-    for (let i = 0; i < adHocSOsToCreate.length; i += chunkSize) {
-      const chunk = adHocSOsToCreate.slice(i, i + chunkSize);
-      const bulkCreateChunkResponse = await unsecuredSavedObjectsClient.bulkCreate<AdHocRunSO>(
-        chunk
-      );
-      allSavedObjects.push(...bulkCreateChunkResponse.saved_objects);
-    }
+        console.log('adHocSOsToCreate', JSON.stringify(adHocSOsToCreate, null, 2));
+        if (adHocSOsToCreate.length === 1) {
+          const createSavedObject = await unsecuredSavedObjectsClient.create<AdHocRunSO>(
+            adHocSOsToCreate[0].type,
+            adHocSOsToCreate[0].attributes,
+            {
+              references: adHocSOsToCreate[0].references,
+            }
+          );
+          allSavedObjects.push(createSavedObject);
+        } else {
+          for (let i = 0; i < adHocSOsToCreate.length; i += chunkSize) {
+            const chunk = adHocSOsToCreate.slice(i, i + chunkSize);
+            const bulkCreateChunkResponse =
+              await unsecuredSavedObjectsClient.bulkCreate<AdHocRunSO>(chunk);
+            allSavedObjects.push(...bulkCreateChunkResponse.saved_objects);
+          }
+        }
+      }
+    );
+    const endTime = performance.now();
+    console.log(`Time taken to create saved objects: ${endTime - startTime}ms`);
 
-    const transformedResponse: ScheduleBackfillResults = allSavedObjects.map(
-      (so: SavedObject<AdHocRunSO>, index: number) => {
+    await withSpan({ name: 'backfillClient.bulkQueue.audit', type: 'rule' }, async () => {
+      transformedResponse = allSavedObjects.map((so: SavedObject<AdHocRunSO>, index: number) => {
         if (so.error) {
           auditLogger?.log(
             adHocRunAuditEvent({
@@ -219,8 +240,8 @@ export class BackfillClient {
           isSystemAction: (id: string) => actionsClient.isSystemAction(id),
           originalSO: adHocSOsToCreate?.[index],
         });
-      }
-    );
+      });
+    });
 
     /**
      * Use soToCreateIndexOrErrorMap to build the result array that returns

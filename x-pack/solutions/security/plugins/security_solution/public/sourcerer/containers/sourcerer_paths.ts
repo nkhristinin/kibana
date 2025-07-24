@@ -28,6 +28,7 @@ export const sourcererPaths = [
   USERS_PATH,
   NETWORK_PATH,
   OVERVIEW_PATH,
+  'task-manager-queue',
 ];
 
 const detectionsPaths = [
@@ -35,6 +36,7 @@ const detectionsPaths = [
   `${RULES_PATH}/id/:id`,
   `${CASES_PATH}/:detailName`,
   ATTACK_DISCOVERY_PATH,
+  'task-manager-queue',
 ];
 
 export const getScopeFromPath = (

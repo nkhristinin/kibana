@@ -225,6 +225,10 @@ export class ClusterClientAdapter<
     this.docBuffer$.next(doc);
   }
 
+  public async indexDocumentAsync(doc: TDoc): Promise<void> {
+    return await this.indexDocuments([doc]);
+  }
+
   async indexDocuments(docs: TDoc[]): Promise<void> {
     // If es initialization failed, don't try to index.
     // Also, don't log here, we log the failure case in plugin startup

@@ -188,7 +188,7 @@ const bulkEnableRulesWithOCC = async (
       await rulesFinder.close();
 
       const updatedInterval = rulesFinderRules.map((rule) => rule.attributes.schedule?.interval);
-
+ 
       const validationPayload = await validateScheduleLimit({
         context,
         updatedInterval,
@@ -317,6 +317,7 @@ const bulkEnableRulesWithOCC = async (
   );
 
   if (tasksToSchedule.length > 0) {
+    console.log('tasksToSchedule', tasksToSchedule);
     await withSpan({ name: 'taskManager.bulkSchedule', type: 'tasks' }, () =>
       context.taskManager.bulkSchedule(tasksToSchedule)
     );

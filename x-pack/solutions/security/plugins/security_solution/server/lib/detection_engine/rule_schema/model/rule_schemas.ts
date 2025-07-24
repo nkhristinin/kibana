@@ -110,6 +110,13 @@ export const RuleSourceCamelCased = z.discriminatedUnion('type', [
   }),
 ]);
 
+export type GapAutoFill = z.infer<typeof GapAutoFill>;
+export const GapAutoFill = z.object({
+  range: z.string(),
+  checkInterval: z.string(),
+  lastCheckedDate: z.string().optional(),
+});
+
 // Conversion to an interface has to be disabled for the entire file; otherwise,
 // the resulting union would not be assignable to Alerting's RuleParams due to a
 // TypeScript bug: https://github.com/microsoft/TypeScript/issues/15300
@@ -149,6 +156,7 @@ export const BaseRuleParams = z.object({
   requiredFields: RequiredFieldArray.optional(),
   setup: SetupGuide.optional(),
   responseActions: z.array(RuleResponseAction).optional(),
+  gapAutoFill: GapAutoFill.optional(),
 });
 
 export type EqlSpecificRuleParams = z.infer<typeof EqlSpecificRuleParams>;

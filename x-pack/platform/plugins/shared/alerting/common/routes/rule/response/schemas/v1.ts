@@ -490,6 +490,18 @@ export const artifactsSchema = schema.object({
   investigation_guide: schema.maybe(investigationGuideSchema),
 });
 
+export const gapAutoFillSchema = schema.object({
+  range: schema.string({
+    meta: { description: 'The range of the gap auto fill.' },
+  }),
+  check_interval: schema.string({
+    meta: { description: 'The check interval of the gap auto fill.' },
+  }),
+  last_checked_date: schema.string({
+    meta: { description: 'The last checked date of the gap auto fill.' },
+  }),
+});
+
 export const ruleResponseSchema = schema.object({
   id: schema.string({
     meta: {
@@ -655,6 +667,7 @@ export const ruleResponseSchema = schema.object({
   alert_delay: schema.maybe(alertDelaySchema),
   flapping: schema.maybe(schema.nullable(flappingSchemaV1)),
   artifacts: schema.maybe(artifactsSchema),
+  gap_auto_fill: schema.maybe(gapAutoFillSchema),
 });
 
 export const scheduleIdsSchema = schema.maybe(schema.arrayOf(schema.string()));

@@ -324,5 +324,18 @@ export const alertMappings: SavedObjectsTypeMappingDefinition = {
     running: {
       type: 'boolean',
     },
+    gapAutoFill: {
+      properties: {
+        range: {
+          type: 'keyword',
+        },
+        checkInterval: {
+          type: 'keyword',
+        },
+        lastCheckedDate: {
+          type: 'date',
+        },
+      },
+    },
   },
 };

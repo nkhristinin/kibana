@@ -41,7 +41,7 @@ import { TaskTypeDictionary } from './task_type_dictionary';
 import type { AggregationOpts, FetchResult, SearchOpts } from './task_store';
 import { TaskStore } from './task_store';
 import { TaskScheduling } from './task_scheduling';
-import { backgroundTaskUtilizationRoute, healthRoute, metricsRoute } from './routes';
+import { backgroundTaskUtilizationRoute, healthRoute, metricsRoute, queueRoute } from './routes';
 import type { MonitoringStats } from './monitoring';
 import { createMonitoringStats } from './monitoring';
 import type { ConcreteTaskInstance } from './task';
@@ -137,6 +137,7 @@ export class TaskManagerPlugin
   private numOfKibanaInstances$: Subject<number> = new BehaviorSubject(1);
   private canEncryptSavedObjects: boolean;
   private licenseSubscriber?: PublicMethodsOf<LicenseSubscriber>;
+  private taskStore?: TaskStore;
 
   constructor(private readonly initContext: PluginInitializerContext) {
     this.initContext = initContext;
@@ -227,6 +228,11 @@ export class TaskManagerPlugin
       taskManagerId: this.taskManagerId,
     });
 
+    queueRoute({
+      router,
+      getTaskStore: () => this.taskStore!,
+    });
+
     core.status.derivedStatus$.subscribe((status) =>
       this.logger.debug(`status core.status.derivedStatus now set to ${status.level}`)
     );
@@ -294,7 +300,6 @@ export class TaskManagerPlugin
     { cloud, licensing }: TaskManagerPluginsStart
   ): TaskManagerStartContract {
     this.licenseSubscriber = new LicenseSubscriber(licensing.license$);
-
     const savedObjectsRepository = savedObjects.createInternalRepository([
       TASK_SO_NAME,
       BACKGROUND_TASK_NODE_SO_NAME,
@@ -329,6 +334,7 @@ export class TaskManagerPlugin
       canEncryptSavedObjects: this.canEncryptSavedObjects,
       getIsSecurityEnabled: this.licenseSubscriber?.getIsSecurityEnabled,
     });
+    this.taskStore = taskStore;
 
     const isServerless = this.initContext.env.packageInfo.buildFlavor === 'serverless';
 

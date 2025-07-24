@@ -240,6 +240,8 @@ export const runTask = async ({
     const taskStartTime = moment().utc().toISOString();
     log('running task');
 
+    throw new Error('test');
+
     let scoresWritten = 0;
     const updatedState = {
       lastExecutionTimestamp: taskStartTime,

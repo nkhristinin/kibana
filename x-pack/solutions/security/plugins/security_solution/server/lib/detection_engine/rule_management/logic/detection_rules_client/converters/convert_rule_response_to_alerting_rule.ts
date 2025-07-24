@@ -64,6 +64,10 @@ export const convertRuleResponseToAlertingRule = (
   return {
     name: rule.name,
     tags: rule.tags,
+    gapAutoFill: {
+      range: 'now-5h',
+      checkInterval: '1h',
+    },
     params: {
       author: rule.author,
       buildingBlockType: rule.building_block_type,

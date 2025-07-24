@@ -99,6 +99,18 @@ export const transformFlapping = (flapping: Rule['flapping']) => {
   };
 };
 
+export const transformGapAutoFill = (gapAutoFill: Rule['gapAutoFill']) => {
+  if (!gapAutoFill) {
+    return gapAutoFill;
+  }
+
+  return {
+    range: gapAutoFill.range,
+    check_interval: gapAutoFill.checkInterval,
+    last_checked_date: gapAutoFill.lastCheckedDate,
+  };
+};
+
 export const transformRuleToRuleResponse = <Params extends RuleParams = never>(
   rule: Rule<Params>
 ): RuleResponseV1<RuleParamsV1> => ({
@@ -156,4 +168,7 @@ export const transformRuleToRuleResponse = <Params extends RuleParams = never>(
     : {}),
   ...(rule.alertDelay !== undefined ? { alert_delay: rule.alertDelay } : {}),
   ...(rule.flapping !== undefined ? { flapping: transformFlapping(rule.flapping) } : {}),
+  ...(rule.gapAutoFill !== undefined
+    ? { gap_auto_fill: transformGapAutoFill(rule.gapAutoFill) }
+    : {}),
 });

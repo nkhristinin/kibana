@@ -14,6 +14,7 @@ import { CASES_PATH, ONBOARDING_PATH } from '../../common/constants';
 import { NotFoundPage } from './404';
 import type { StartServices } from '../types';
 import { hasAccessToCases, hasAccessToSecuritySolution } from '../helpers_access';
+import { TaskManagerQueuePage } from './task_manager_queue_page';
 
 export interface AppRoutesProps {
   services: StartServices;
@@ -25,6 +26,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = React.memo(({ services, subPl
     {subPluginRoutes.map((route, index) => {
       return <Route key={`route-${index}`} {...route} />;
     })}
+    <Route path="/task-manager-queue" component={TaskManagerQueuePage} />
     <Route>
       <RedirectRoute capabilities={services.application.capabilities} />
     </Route>
