@@ -310,9 +310,7 @@ export const useBulkActions = ({
 
         const dryRunResult = await executeBulkActionsDryRun({
           type: BulkActionTypeEnum.fill_gaps,
-          ...(isAllSelected
-            ? { query: convertRulesFilterToKQL(filterOptions) }
-            : { ids: selectedRuleIds }),
+          ...(isAllSelected ? globalQuery : { ids: selectedRuleIds }),
           fillGapsPayload: {
             start_date: new Date(Date.now() - 1000).toISOString(),
             end_date: new Date().toISOString(),
