@@ -55,3 +55,18 @@ export const GET_RULE_EXECUTION_RESULTS_URL =
   `${INTERNAL_URL}/rules/{ruleId}/execution/results` as const;
 export const getRuleExecutionResultsUrl = (ruleId: string) =>
   `${INTERNAL_URL}/rules/${ruleId}/execution/results` as const;
+
+export const RULE_EXECUTION_TRACE_CONNECT_URL =
+  `${INTERNAL_URL}/rules/{ruleId}/execution/trace/connect` as const;
+export const getRuleExecutionTraceConnectUrl = (ruleId: string) =>
+  `${INTERNAL_URL}/rules/${ruleId}/execution/trace/connect` as const;
+
+export const RULE_EXECUTION_TRACE_TAIL_URL =
+  `${INTERNAL_URL}/rules/{ruleId}/execution/trace/tail` as const;
+export const getRuleExecutionTraceTailUrl = (ruleId: string) =>
+  `${INTERNAL_URL}/rules/${ruleId}/execution/trace/tail` as const;
+
+export const RULE_EXECUTION_TRACE_EXPORT_URL =
+  `${INTERNAL_URL}/rules/{ruleId}/execution/trace/export` as const;
+export const getRuleExecutionTraceExportUrl = (ruleId: string) =>
+  `${INTERNAL_URL}/rules/${ruleId}/execution/trace/export` as const;

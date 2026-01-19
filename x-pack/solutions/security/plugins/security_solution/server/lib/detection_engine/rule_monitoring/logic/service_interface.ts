@@ -38,6 +38,8 @@ export interface IRuleMonitoringService {
     plugins: SecuritySolutionPluginStartDependencies
   ): void;
 
+  stop(): void;
+
   createDetectionEngineHealthClient(
     params: DetectionEngineHealthClientParams
   ): IDetectionEngineHealthClient;

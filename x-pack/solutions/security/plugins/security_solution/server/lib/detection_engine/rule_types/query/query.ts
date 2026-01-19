@@ -35,10 +35,35 @@ export const queryExecutor = async ({
   licensing: LicensingPluginSetup;
   isLoggedRequestsEnabled: boolean;
 }) => {
-  const { completeRule } = sharedParams;
+  const { completeRule, ruleExecutionLogger } = sharedParams;
   const ruleParams = completeRule.ruleParams;
 
   return withSecuritySpan('queryExecutor', async () => {
+    // Log rule configuration at execution start (trace-only)
+    ruleExecutionLogger.traceOnly('[Query Rule] Starting execution', {
+      ruleType: ruleParams.type,
+      ruleId: completeRule.ruleConfig.id,
+      ruleName: completeRule.ruleConfig.name,
+      language: ruleParams.language,
+      query: ruleParams.query,
+      index: sharedParams.inputIndex,
+      timeRange: {
+        from: sharedParams.tuple.from.toISOString(),
+        to: sharedParams.tuple.to.toISOString(),
+      },
+      maxSignals: sharedParams.tuple.maxSignals,
+      filtersCount: ruleParams.filters?.length ?? 0,
+      hasAlertSuppression: ruleParams.alertSuppression?.groupBy != null,
+      alertSuppressionGroupBy: ruleParams.alertSuppression?.groupBy,
+    });
+
+    // Log filter building step
+    ruleExecutionLogger.traceOnly('[Query Rule] Building ES filter from rule query', {
+      queryLanguage: ruleParams.language,
+      hasSavedId: !!ruleParams.savedId,
+      hasExceptionFilter: !!sharedParams.exceptionFilter,
+    });
+
     const esFilter = await getFilter({
       type: ruleParams.type,
       filters: ruleParams.filters,
@@ -51,33 +76,52 @@ export const queryExecutor = async ({
       loadFields: true,
     });
 
+    // Log the compiled filter
+    ruleExecutionLogger.traceOnly('[Query Rule] ES filter compiled', {
+      filter: esFilter,
+    });
+
     const license = await firstValueFrom(licensing.license$);
     const hasPlatinumLicense = license.hasAtLeast('platinum');
+    const useAlertSuppression = ruleParams.alertSuppression?.groupBy != null && hasPlatinumLicense;
 
-    const result =
-      // TODO: replace this with getIsAlertSuppressionActive function
-      ruleParams.alertSuppression?.groupBy != null && hasPlatinumLicense
-        ? await groupAndBulkCreate({
+    ruleExecutionLogger.traceOnly('[Query Rule] Execution mode determined', {
+      useAlertSuppression,
+      licenseLevel: license.type,
+      hasPlatinumLicense,
+    });
+
+    const result = useAlertSuppression
+      ? await groupAndBulkCreate({
+          sharedParams,
+          services,
+          filter: esFilter,
+          buildReasonMessage: buildReasonMessageForQueryAlert,
+          bucketHistory,
+          groupByFields: ruleParams.alertSuppression.groupBy,
+          eventsTelemetry,
+          isLoggedRequestsEnabled,
+        })
+      : {
+          ...(await searchAfterAndBulkCreate({
             sharedParams,
             services,
+            eventsTelemetry,
             filter: esFilter,
             buildReasonMessage: buildReasonMessageForQueryAlert,
-            bucketHistory,
-            groupByFields: ruleParams.alertSuppression.groupBy,
-            eventsTelemetry,
             isLoggedRequestsEnabled,
-          })
-        : {
-            ...(await searchAfterAndBulkCreate({
-              sharedParams,
-              services,
-              eventsTelemetry,
-              filter: esFilter,
-              buildReasonMessage: buildReasonMessageForQueryAlert,
-              isLoggedRequestsEnabled,
-            })),
-            state: { isLoggedRequestsEnabled },
-          };
+          })),
+          state: { isLoggedRequestsEnabled },
+        };
+
+    // Log execution result summary
+    ruleExecutionLogger.traceOnly('[Query Rule] Execution completed', {
+      success: result.success,
+      createdSignalsCount: result.createdSignalsCount,
+      warningsCount: result.warningMessages?.length ?? 0,
+      errorsCount: result.errors?.length ?? 0,
+      hasResponseActions: (completeRule.ruleParams.responseActions?.length ?? 0) > 0,
+    });
 
     scheduleNotificationResponseActionsService({
       signals: result.createdSignals,

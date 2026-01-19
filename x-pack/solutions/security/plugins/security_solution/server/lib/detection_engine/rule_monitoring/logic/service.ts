@@ -10,6 +10,8 @@ import { SavedObjectsClient } from '@kbn/core/server';
 import { invariant } from '../../../../../common/utils/invariant';
 import type { ConfigType } from '../../../../config';
 import { withSecuritySpan } from '../../../../utils/with_security_span';
+import { RuleExecutionTraceService } from './rule_execution_trace/service';
+import { RuleExecutionTraceWriter } from './rule_execution_trace/writer';
 import type {
   SecuritySolutionPluginCoreSetupDependencies,
   SecuritySolutionPluginCoreStartDependencies,
@@ -46,6 +48,9 @@ export const createRuleMonitoringService = (
   let pluginsSetup: SecuritySolutionPluginSetupDependencies | null = null;
   let coreStart: SecuritySolutionPluginCoreStartDependencies | null = null;
 
+  const ruleExecutionTraceService = new RuleExecutionTraceService(logger.get('ruleExecutionTrace'));
+  let ruleExecutionTraceWriter: RuleExecutionTraceWriter | undefined;
+
   return {
     setup: (
       core: SecuritySolutionPluginCoreSetupDependencies,
@@ -55,6 +60,9 @@ export const createRuleMonitoringService = (
       pluginsSetup = plugins;
 
       registerEventLogProvider(plugins.eventLog);
+
+      // Trace data stream uses DSL (Data Stream Lifecycle) for retention - works in both serverless and ESS
+      ruleExecutionTraceService.setup();
     },
 
     start: (
@@ -62,6 +70,21 @@ export const createRuleMonitoringService = (
       plugins: SecuritySolutionPluginStartDependencies
     ): void => {
       coreStart = core;
+
+      // Install data stream templates at start so any node can write later
+      void ruleExecutionTraceService.start({
+        esClient: core.elasticsearch.client.asInternalUser,
+      });
+
+      ruleExecutionTraceWriter = new RuleExecutionTraceWriter({
+        logger: logger.get('ruleExecutionTraceWriter'),
+        esClient: core.elasticsearch.client.asInternalUser,
+        traceService: ruleExecutionTraceService,
+      });
+    },
+
+    stop: (): void => {
+      ruleExecutionTraceService.stop();
     },
 
     createDetectionEngineHealthClient: (
@@ -151,7 +174,9 @@ export const createRuleMonitoringService = (
             childLogger,
             context,
             ruleMonitoringService,
-            ruleResultService
+            ruleResultService,
+            savedObjectsClient,
+            ruleExecutionTraceWriter
           );
         }
       );

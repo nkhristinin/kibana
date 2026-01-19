@@ -14,6 +14,7 @@ import type { ExperimentalFeatures } from '../common';
 import { referenceDataSavedObjectType } from './endpoint/lib/reference_data';
 import { protectionUpdatesNoteType } from './endpoint/lib/protection_updates_note/saved_object_mappings';
 import { noteType, pinnedEventType, timelineType } from './lib/timeline/saved_object_mappings';
+import { ruleExecutionTraceSessionType } from './lib/detection_engine/rule_monitoring/logic/rule_execution_trace/session_saved_object';
 // eslint-disable-next-line no-restricted-imports
 import { legacyType as legacyRuleActionsType } from './lib/detection_engine/rule_actions_legacy';
 import { prebuiltRuleAssetType } from './lib/detection_engine/prebuilt_rules';
@@ -46,6 +47,7 @@ const types = [
   manifestType,
   unifiedManifestType,
   signalsMigrationType,
+  ruleExecutionTraceSessionType,
   riskEngineConfigurationType,
   entityEngineDescriptorType,
   privilegeMonitoringType,

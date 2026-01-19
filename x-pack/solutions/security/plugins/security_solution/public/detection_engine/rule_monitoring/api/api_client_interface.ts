@@ -14,6 +14,8 @@ import type {
   RuleExecutionResult,
   RuleExecutionStatus,
   RuleRunType,
+  ConnectRuleExecutionTraceResponse,
+  TailRuleExecutionTraceResponse,
 } from '../../../../common/api/detection_engine/rule_monitoring';
 
 export interface IRuleMonitoringApiClient {
@@ -38,6 +40,34 @@ export interface IRuleMonitoringApiClient {
   fetchRuleExecutionResults(
     args: FetchRuleExecutionResultsArgs
   ): Promise<GetRuleExecutionResultsResponse>;
+
+  /**
+   * Starts watching a specific execution UUID (multi-node safe via persisted session).
+   */
+  connectRuleExecutionTrace(
+    args: ConnectRuleExecutionTraceArgs
+  ): Promise<ConnectRuleExecutionTraceResponse>;
+
+  /**
+   * Fetches new trace log lines for an execution UUID after the given seq.
+   */
+  tailRuleExecutionTrace(args: TailRuleExecutionTraceArgs): Promise<TailRuleExecutionTraceResponse>;
+
+  /**
+   * Returns the download URL for a gzipped NDJSON export of an execution trace.
+   * Intended to be used in an `<a href>` or `window.location`.
+   */
+  getRuleExecutionTraceExportUrl(ruleId: string): string;
+
+  /**
+   * Downloads the execution trace as a gzipped NDJSON file.
+   */
+  downloadRuleExecutionTrace(args: DownloadRuleExecutionTraceArgs): Promise<void>;
+}
+
+export interface DownloadRuleExecutionTraceArgs {
+  ruleId: string;
+  dateStart?: string;
 }
 
 export interface RuleMonitoringApiCallArgs {
@@ -145,4 +175,17 @@ export interface FetchRuleExecutionResultsArgs extends RuleMonitoringApiCallArgs
    * Array of `runTypeFilters` (e.g. `manual,scheduled`)
    */
   runTypeFilters?: RuleRunType[];
+}
+
+export interface ConnectRuleExecutionTraceArgs extends RuleMonitoringApiCallArgs {
+  ruleId: string;
+  ttlMs?: number;
+}
+
+export interface TailRuleExecutionTraceArgs extends RuleMonitoringApiCallArgs {
+  ruleId: string;
+  dateStart?: string;
+  afterTs?: string;
+  afterSeq?: number;
+  limit?: number;
 }

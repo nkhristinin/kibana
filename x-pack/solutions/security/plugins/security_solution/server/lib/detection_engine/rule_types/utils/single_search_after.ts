@@ -43,6 +43,16 @@ export const singleSearchAfter = async <
   return withSecuritySpan('singleSearchAfter', async () => {
     const loggedRequests: RulePreviewLoggedRequest[] = [];
 
+    // Log the ES request to trace (trace-only, not console)
+    ruleExecutionLogger.traceOnly('[ES Search] Executing search request', {
+      index: searchRequest.index,
+      size: searchRequest.size,
+      from: (searchRequest.body as Record<string, unknown>)?.query
+        ? 'has query'
+        : 'no query',
+      search_after: searchRequest.search_after,
+    });
+
     try {
       const start = performance.now();
       const nextSearchAfterResult = (await services.scopedClusterClient.asCurrentUser.search(
@@ -50,9 +60,18 @@ export const singleSearchAfter = async <
       )) as ESSearchResponse<SignalSource, TSearchRequest>;
 
       const end = performance.now();
+      const durationMs = Math.round(end - start);
 
       const searchErrors = createErrorsFromShard({
         errors: nextSearchAfterResult._shards.failures ?? [],
+      });
+
+      // Log the ES request/response to trace
+      ruleExecutionLogger.traceEsRequest({
+        description: loggedRequestsConfig?.description ?? 'Search for matching events',
+        request: searchRequest,
+        response: nextSearchAfterResult as unknown as Record<string, unknown>,
+        durationMs,
       });
 
       if (loggedRequestsConfig) {
@@ -62,7 +81,7 @@ export const singleSearchAfter = async <
             : logSearchRequest(searchRequest),
           description: loggedRequestsConfig.description,
           request_type: loggedRequestsConfig.type,
-          duration: Math.round(end - start),
+          duration: durationMs,
         });
       }
 
@@ -73,6 +92,12 @@ export const singleSearchAfter = async <
         loggedRequests,
       };
     } catch (exc) {
+      // Log the error to trace with full details
+      ruleExecutionLogger.traceEsRequest({
+        description: loggedRequestsConfig?.description ?? 'Search for matching events',
+        request: searchRequest,
+        error: exc instanceof Error ? exc : new Error(String(exc)),
+      });
       ruleExecutionLogger.error(`Searching events operation failed: ${exc}`);
       throw exc;
     }

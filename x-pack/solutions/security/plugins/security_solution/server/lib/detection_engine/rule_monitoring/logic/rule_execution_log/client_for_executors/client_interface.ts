@@ -66,6 +66,36 @@ export interface IRuleExecutionLogForExecutors {
    * @param args Information about the status change event.
    */
   logStatusChange(args: StatusChangeArgs): Promise<void>;
+
+  /**
+   * Writes a detailed trace message ONLY to the trace data stream.
+   * Does NOT write to console or event log - useful for verbose debugging info
+   * like full ES request/response payloads that would be too noisy for console.
+   */
+  traceOnly(message: string, data?: Record<string, unknown>): void;
+
+  /**
+   * Logs an ES request/response pair to the trace data stream.
+   * Captures the full request body and response summary for debugging.
+   */
+  traceEsRequest(args: TraceEsRequestArgs): void;
+}
+
+export interface TraceEsRequestArgs {
+  /** Description of what this request is for, e.g. "Search for matching documents" */
+  description: string;
+  /** The ES request body (will be JSON stringified) */
+  request: unknown;
+  /** The ES response (will be summarized) */
+  response?: {
+    took?: number;
+    hits?: { total?: number | { value: number } };
+    [key: string]: unknown;
+  };
+  /** Duration in ms */
+  durationMs?: number;
+  /** Error if request failed */
+  error?: Error;
 }
 
 /**

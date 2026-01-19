@@ -94,6 +94,17 @@ export const searchAfterAndBulkCreateFactory = async ({
 
     const maxSignals = maxSignalsOverride ?? tuple.maxSignals;
 
+    // Log execution start with configuration details (trace-only)
+    ruleExecutionLogger.traceOnly('[Execution Start] Beginning searchAfterAndBulkCreate', {
+      inputIndexPattern,
+      timeRange: { from: tuple.from.toISOString(), to: tuple.to.toISOString() },
+      maxSignals,
+      pageSize,
+      primaryTimestamp,
+      secondaryTimestamp,
+      exceptionsCount: exceptionsList.length,
+    });
+
     while (toReturn.createdSignalsCount <= maxSignals) {
       const cycleNum = `cycle ${searchingIteration++}`;
       try {
@@ -176,15 +187,40 @@ export const searchAfterAndBulkCreateFactory = async ({
           events: searchResult.hits.hits,
         });
 
+        // Log filtering results (trace-only)
+        const excludedCount = searchResult.hits.hits.length - includedEvents.length;
+        if (excludedCount > 0) {
+          ruleExecutionLogger.traceOnly(`[${cycleNum}] Exception list filtering`, {
+            originalCount: searchResult.hits.hits.length,
+            includedCount: includedEvents.length,
+            excludedCount,
+          });
+        }
+
         // only bulk create if there are filteredEvents leftover
         // if there isn't anything after going through the value list filter
         // skip the call to bulk create and proceed to the next search_after,
         // if there is a sort id to continue the search_after with.
         if (includedEvents.length !== 0) {
           const enrichedEvents = await enrichment(includedEvents);
+
+          // Log enrichment details (trace-only)
+          ruleExecutionLogger.traceOnly(`[${cycleNum}] Enriching events before alert creation`, {
+            eventsToEnrich: includedEvents.length,
+            enrichedEvents: enrichedEvents.length,
+          });
+
           const bulkCreateResult = await bulkCreateExecutor({
             enrichedEvents,
             toReturn,
+          });
+
+          // Log bulk create results (trace-only)
+          ruleExecutionLogger.traceOnly(`[${cycleNum}] Bulk create completed`, {
+            inputEvents: enrichedEvents.length,
+            createdAlerts: bulkCreateResult.createdItemsCount,
+            errors: bulkCreateResult.errors?.length ?? 0,
+            alertsWereTruncated: bulkCreateResult.alertsWereTruncated,
           });
 
           ruleExecutionLogger.debug(
@@ -216,6 +252,14 @@ export const searchAfterAndBulkCreateFactory = async ({
           break;
         }
       } catch (exc: unknown) {
+        // Log exception details (trace-only)
+        const error = exc instanceof Error ? exc : new Error(String(exc));
+        ruleExecutionLogger.traceOnly(`[${cycleNum}] Exception during execution`, {
+          errorMessage: error.message,
+          errorStack: error.stack,
+          errorName: error.name,
+        });
+
         ruleExecutionLogger.error(
           'Unable to extract/process events or create alerts',
           JSON.stringify(exc)
@@ -229,6 +273,17 @@ export const searchAfterAndBulkCreateFactory = async ({
         ]);
       }
     }
+
+    // Log execution summary (trace-only)
+    ruleExecutionLogger.traceOnly('[Execution Complete] searchAfterAndBulkCreate finished', {
+      totalIterations: searchingIteration,
+      createdSignalsCount: toReturn.createdSignalsCount,
+      success: toReturn.success,
+      warningsCount: toReturn.warningMessages.length,
+      errorsCount: toReturn.errors.length,
+      searchDurations: toReturn.searchAfterTimes,
+    });
+
     ruleExecutionLogger.debug(`Completed bulk indexing of ${toReturn.createdSignalsCount} alert`);
 
     if (isLoggedRequestsEnabled) {

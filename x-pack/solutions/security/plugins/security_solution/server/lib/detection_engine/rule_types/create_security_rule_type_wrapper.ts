@@ -43,6 +43,13 @@ import { truncateList } from '../rule_monitoring';
 import aadFieldConversion from '../routes/index/signal_aad_mapping.json';
 import { extractReferences, injectReferences } from './saved_object_references';
 import { withSecuritySpan } from '../../../utils/with_security_span';
+import {
+  analyzeIndices,
+  analyzeFields,
+  extractFieldsFromQuery,
+  extractFieldsFromFilters,
+  checkFieldCardinality,
+} from '../rule_monitoring/logic/rule_execution_trace/field_analyzer';
 import { getInputIndex } from './utils/get_input_output_index';
 import { TIMESTAMP_RUNTIME_FIELD } from './constants';
 import { buildTimestampRuntimeMapping } from './utils/build_timestamp_runtime_mapping';
@@ -67,6 +74,16 @@ import {
 import { checkErrorDetails } from './utils/check_error_details';
 
 const aliasesFieldMap: FieldMap = {};
+
+// Helper to format bytes for trace logging
+const formatBytesForTrace = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+};
+
 Object.entries(aadFieldConversion).forEach(([key, value]) => {
   aliasesFieldMap[key] = {
     type: 'alias',
@@ -216,6 +233,27 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
           } = completeRule.ruleConfig;
 
           const refresh = isPreview ? false : true;
+
+          // Log comprehensive rule execution start (trace-only)
+          ruleExecutionLogger.traceOnly('[Rule Execution] Starting execution', {
+            ruleId: rule.id,
+            ruleUuid: params.ruleId,
+            ruleName: rule.name,
+            ruleType: rule.ruleTypeId,
+            ruleRevision: rule.revision,
+            interval,
+            spaceId,
+            executionId,
+            isPreview,
+            previousStartedAt: previousStartedAt?.toISOString(),
+            startedAt: startedAt.toISOString(),
+            startedAtOverridden,
+            from,
+            to,
+            maxSignals,
+            timestampOverride,
+            timestampOverrideFallbackDisabled,
+          });
 
           ruleExecutionLogger.debug(`Starting Security Rule execution (interval: ${interval})`);
 
@@ -439,6 +477,238 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
                 experimentalFeatures.endpointExceptionsMovedUnderManagement,
             });
 
+            // Log full rule definition (trace-only) for AI analysis
+            ruleExecutionLogger.traceOnly('[Rule Definition] Full rule configuration', {
+              ruleId: rule.id,
+              ruleName: rule.name,
+              ruleType: params.type,
+              enabled: rule.enabled,
+              // Query/language
+              query: params.query,
+              language: params.language,
+              savedId: params.savedId,
+              // Index patterns
+              index: params.index,
+              dataViewId: params.dataViewId,
+              // Filters
+              filters: params.filters,
+              // Time settings
+              from: params.from,
+              to: params.to,
+              // Threshold settings (if applicable)
+              threshold: params.threshold,
+              // Alert suppression
+              alertSuppression: params.alertSuppression,
+              // Exception lists (references)
+              exceptionsList: params.exceptionsList?.map((ex) => ({
+                id: ex.id,
+                listId: ex.list_id,
+                type: ex.type,
+                namespaceType: ex.namespace_type,
+              })),
+              // Risk and severity
+              riskScore: params.riskScore,
+              severity: params.severity,
+              // Tags and metadata
+              tags: rule.tags,
+              author: params.author,
+              // Building block
+              buildingBlockType: params.buildingBlockType,
+              // Timeline reference
+              timelineId: params.timelineId,
+              timelineTitle: params.timelineTitle,
+            });
+
+            // Log exception items details (trace-only) for AI analysis
+            if (exceptionItems.length > 0) {
+              ruleExecutionLogger.traceOnly('[Exception Items] Active exceptions for this rule', {
+                totalExceptionItems: exceptionItems.length,
+                // Include first 10 exception items with their conditions
+                exceptionItems: exceptionItems.slice(0, 10).map((item) => ({
+                  id: item.id,
+                  name: item.name,
+                  listId: item.list_id,
+                  type: item.type,
+                  // Include the actual exception conditions
+                  entries: item.entries?.map((entry) => ({
+                    field: entry.field,
+                    operator: entry.operator,
+                    type: entry.type,
+                    // For match/match_any, include the value(s)
+                    value: 'value' in entry ? entry.value : undefined,
+                    // For list type, include list reference
+                    list: 'list' in entry ? entry.list : undefined,
+                  })),
+                  osTypes: item.os_types,
+                  tags: item.tags,
+                })),
+                // If more than 10, indicate truncation
+                truncated: exceptionItems.length > 10,
+              });
+            } else {
+              ruleExecutionLogger.traceOnly('[Exception Items] No exception items configured', {
+                exceptionListsConfigured: params.exceptionsList?.length ?? 0,
+              });
+            }
+
+            // Index Pattern Analysis (trace-only)
+            // Analyze which indices have data and which are empty
+            // Note: We use a simple console-based logger for analysis since this runs in the executor context
+            const analysisLogger = {
+              debug: (msg: string) => {
+                // Silent - analysis is best-effort and shouldn't pollute logs
+              },
+            } as { debug: (msg: string) => void };
+
+            if (inputIndex.length > 0) {
+              try {
+                // Get time range from tuples to match the actual query time range
+                // This ensures we only show indices that would actually be queried
+                const queryTimeRange =
+                  tuples.length > 0
+                    ? {
+                        from: tuples[0].from.toISOString(),
+                        to: tuples[tuples.length - 1].to.toISOString(),
+                      }
+                    : undefined;
+
+                const indexAnalysis = await analyzeIndices({
+                  esClient: services.scopedClusterClient.asCurrentUser,
+                  indexPatterns: inputIndex,
+                  logger: analysisLogger as unknown as Parameters<typeof analyzeIndices>[0]['logger'],
+                  timeRange: queryTimeRange,
+                });
+
+                const emptyIndices = indexAnalysis.filter((i) => i.status === 'empty');
+                const activeIndices = indexAnalysis.filter((i) => i.status === 'active');
+                const frozenIndices = indexAnalysis.filter((i) => i.is_frozen);
+                const dataStreamIndices = indexAnalysis.filter((i) => i.is_data_stream);
+
+                // Calculate total size
+                const totalSizeBytes = indexAnalysis.reduce((sum, i) => sum + (i.size_bytes || 0), 0);
+
+                // Build suggestions
+                const suggestions: string[] = [];
+                if (emptyIndices.length > 0) {
+                  suggestions.push(
+                    `${emptyIndices.length} index pattern(s) matched no documents: ${emptyIndices
+                      .slice(0, 5)
+                      .map((i) => i.index_name)
+                      .join(', ')}. Consider removing unused patterns.`
+                  );
+                }
+                if (frozenIndices.length > 0) {
+                  suggestions.push(
+                    `${frozenIndices.length} frozen index(es) detected: ${frozenIndices
+                      .slice(0, 3)
+                      .map((i) => i.index_name)
+                      .join(', ')}. Frozen indices have slower search performance.`
+                  );
+                }
+
+                ruleExecutionLogger.traceOnly('[Index Analysis] Index pattern breakdown', {
+                  patterns_configured: inputIndex,
+                  // Time range used for analysis (same as actual query time range)
+                  time_range: queryTimeRange
+                    ? {
+                        from: queryTimeRange.from,
+                        to: queryTimeRange.to,
+                        note: 'Only indices with data in this time range are shown',
+                      }
+                    : { note: 'No time range filter applied (showing all matching indices)' },
+                  total_indices_resolved: indexAnalysis.length,
+                  active_indices: activeIndices.length,
+                  empty_indices: emptyIndices.length,
+                  frozen_indices: frozenIndices.length,
+                  data_stream_indices: dataStreamIndices.length,
+                  total_size_bytes: totalSizeBytes,
+                  total_size_human: formatBytesForTrace(totalSizeBytes),
+                  indices: indexAnalysis.slice(0, 20).map((i) => ({
+                    name: i.index_name,
+                    docs: i.doc_count,
+                    size: i.size_human,
+                    size_bytes: i.size_bytes,
+                    health: i.health,
+                    is_frozen: i.is_frozen,
+                    is_searchable_snapshot: i.is_searchable_snapshot,
+                    is_data_stream: i.is_data_stream,
+                    data_stream: i.data_stream_name,
+                    shards: i.primary_shards,
+                    replicas: i.replica_shards,
+                    created: i.creation_date,
+                  })),
+                  suggestions,
+                });
+              } catch (analysisError) {
+                // Non-blocking - trace analysis should never break rule execution
+                analysisLogger.debug(`Index analysis failed: ${analysisError}`);
+              }
+
+              // Field Mapping Analysis (trace-only)
+              try {
+                const queryFields = extractFieldsFromQuery(params.query, params.language || 'kuery');
+                const filterFields = extractFieldsFromFilters(params.filters);
+                const suppressionFields = params.alertSuppression?.groupBy || [];
+
+                if (queryFields.length > 0 || filterFields.length > 0 || suppressionFields.length > 0) {
+                  const fieldAnalysis = await analyzeFields({
+                    esClient: services.scopedClusterClient.asCurrentUser,
+                    indexPatterns: inputIndex,
+                    queryFields,
+                    filterFields,
+                    suppressionFields,
+                    logger: analysisLogger,
+                  });
+
+                  const fieldsWithIssues = fieldAnalysis.filter((f) => f.suggestions.length > 0);
+
+                  ruleExecutionLogger.traceOnly('[Field Analysis] Query field mappings', {
+                    total_fields_analyzed: fieldAnalysis.length,
+                    query_fields: queryFields,
+                    filter_fields: filterFields,
+                    suppression_fields: suppressionFields,
+                    fields: fieldAnalysis.map((f) => ({
+                      name: f.field_name,
+                      type: f.field_type,
+                      aggregatable: f.is_aggregatable,
+                      has_keyword: f.has_keyword_subfield,
+                      used_in: f.used_in,
+                    })),
+                    fields_with_issues: fieldsWithIssues.map((f) => f.field_name),
+                    suggestions: fieldsWithIssues.flatMap((f) => f.suggestions),
+                  });
+
+                  // Check cardinality for suppression fields
+                  if (suppressionFields.length > 0 && tuples.length > 0) {
+                    const tuple = tuples[0];
+                    for (const suppressionField of suppressionFields.slice(0, 3)) {
+                      const { cardinality, isHighCardinality } = await checkFieldCardinality({
+                        esClient: services.scopedClusterClient.asCurrentUser,
+                        indexPatterns: inputIndex,
+                        field: suppressionField,
+                        timeRange: {
+                          from: tuple.from.toISOString(),
+                          to: tuple.to.toISOString(),
+                        },
+                        logger: analysisLogger,
+                      });
+
+                      if (isHighCardinality) {
+                        ruleExecutionLogger.traceOnly('[Field Analysis] High cardinality warning', {
+                          field: suppressionField,
+                          cardinality,
+                          warning: `Field '${suppressionField}' has high cardinality (${cardinality.toLocaleString()}+). Alert suppression may be slow.`,
+                        });
+                      }
+                    }
+                  }
+                }
+              } catch (fieldError) {
+                // Non-blocking
+                analysisLogger.debug(`Field analysis failed: ${fieldError}`);
+              }
+            }
+
             const alertTimestampOverride = isPreview ? startedAt : undefined;
 
             const legacySignalFields: string[] = Object.keys(aadFieldConversion);
@@ -468,7 +738,27 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
             });
 
             if (!skipExecution) {
+              // Log execution setup details (trace-only)
+              ruleExecutionLogger.traceOnly('[Rule Execution] Setup complete, starting executor loop', {
+                inputIndex,
+                tuplesCount: tuples.length,
+                exceptionItemsCount: exceptionItems.length,
+                unprocessedExceptionsCount: unprocessedExceptions.length,
+                hasExceptionFilter: !!exceptionFilter,
+                primaryTimestamp,
+                secondaryTimestamp,
+                searchAfterSize,
+                runtimeMappingsKeys: Object.keys(runtimeMappings ?? {}),
+              });
+
               for (const tuple of tuples) {
+                // Log each tuple execution (trace-only)
+                ruleExecutionLogger.traceOnly('[Rule Execution] Starting tuple execution', {
+                  tupleFrom: tuple.from.toISOString(),
+                  tupleTo: tuple.to.toISOString(),
+                  maxSignals: tuple.maxSignals,
+                });
+
                 const runResult = await type.executor({
                   ...options,
                   services,

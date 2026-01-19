@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
 import moment from 'moment';
@@ -19,6 +19,7 @@ import type {
 import {
   EuiBasicTable,
   EuiButton,
+  EuiButtonEmpty,
   EuiDescriptionList,
   EuiFlexGroup,
   EuiFlexItem,
@@ -88,6 +89,7 @@ import {
 import { ExecutionLogSearchBar } from './execution_log_search_bar';
 import { EventLogEventTypes } from '../../../../../common/lib/telemetry';
 import { useDataView } from '../../../../../data_view_manager/hooks/use_data_view';
+import { ExecutionTraceFlyout, TraceStatusBadge } from './execution_trace_flyout';
 
 const EXECUTION_UUID_FIELD_NAME = 'kibana.alert.rule.execution.uuid';
 
@@ -121,6 +123,7 @@ const ExecutionLogTableComponent: React.FC<ExecutionLogTableProps> = ({
   selectAlertsTab,
   ...startServices
 }) => {
+  const [isTraceOpen, setIsTraceOpen] = useState(false);
   const {
     docLinks,
     data: {
@@ -536,6 +539,16 @@ const ExecutionLogTableComponent: React.FC<ExecutionLogTableProps> = ({
           <HeaderSection title={i18n.TABLE_TITLE} subtitle={i18n.TABLE_SUBTITLE} />
         </EuiFlexItem>
         <EuiFlexItem grow={false}>
+          <EuiButtonEmpty
+            iconType={isTraceOpen ? 'unlink' : 'link'}
+            size="s"
+            onClick={() => setIsTraceOpen(!isTraceOpen)}
+            data-test-subj="connectToLiveLog"
+          >
+            {isTraceOpen ? i18n.DISCONNECT_FROM_LIVE_LOG : i18n.CONNECT_TO_LIVE_LOG}
+          </EuiButtonEmpty>
+        </EuiFlexItem>
+        <EuiFlexItem grow={false}>
           <ExecutionLogSearchBar
             onlyShowFilters={true}
             selectedStatuses={statusFilters}
@@ -624,6 +637,10 @@ const ExecutionLogTableComponent: React.FC<ExecutionLogTableProps> = ({
         itemIdToExpandedRowMap={rows.itemIdToExpandedRowMap}
         data-test-subj="executionsTable"
       />
+
+      {isTraceOpen ? (
+        <ExecutionTraceFlyout ruleId={ruleId} onClose={() => setIsTraceOpen(false)} />
+      ) : null}
     </EuiPanel>
   );
 };

@@ -264,6 +264,25 @@ export const groupAndBulkCreate = async ({
         terms: Object.entries(bucket.key).map(([key, value]) => ({ field: key, value })),
       }));
 
+      // Calculate suppression stats for trace logging
+      const totalEventsInBuckets = suppressionBuckets.reduce((sum, b) => sum + b.count, 0);
+      const totalSuppressedByGrouping = totalEventsInBuckets - suppressionBuckets.length;
+
+      // Log suppression grouping results (trace-only)
+      sharedParams.ruleExecutionLogger.traceOnly('[Alert Suppression] Grouping results', {
+        groupByFields,
+        uniqueGroups: suppressionBuckets.length,
+        totalEventsMatched: totalEventsInBuckets,
+        eventsToBeAlerts: suppressionBuckets.length,
+        eventsSuppressedByGrouping: totalSuppressedByGrouping,
+        // Sample of groups (first 5)
+        sampleGroups: suppressionBuckets.slice(0, 5).map((b) => ({
+          terms: b.terms,
+          eventCount: b.count,
+          suppressed: b.count - 1,
+        })),
+      });
+
       const wrappedAlerts = wrapSuppressedAlerts({
         sharedParams,
         suppressionBuckets,
@@ -282,6 +301,17 @@ export const groupAndBulkCreate = async ({
           ruleType: 'query',
         });
         addToSearchAfterReturn({ current: toReturn, next: bulkCreateResult });
+
+        // Log suppression with duration window results (trace-only)
+        sharedParams.ruleExecutionLogger.traceOnly('[Alert Suppression] Time-based suppression complete', {
+          suppressionWindow,
+          suppressionDuration: `${suppressionDuration.value}${suppressionDuration.unit}`,
+          inputAlerts: wrappedAlerts.length,
+          createdAlerts: bulkCreateResult.createdItemsCount,
+          suppressedByTimeWindow: bulkCreateResult.suppressedItemsCount ?? 0,
+          totalEventsSuppressed: totalSuppressedByGrouping + (bulkCreateResult.suppressedItemsCount ?? 0),
+        });
+
         sharedParams.ruleExecutionLogger.debug(
           `created ${bulkCreateResult.createdItemsCount} signals`
         );
@@ -291,13 +321,22 @@ export const groupAndBulkCreate = async ({
           sharedParams,
           wrappedAlerts,
         });
+        const suppressedCount = getNumberOfSuppressedAlerts(bulkCreateResult.createdItems, []);
         addToSearchAfterReturn({
           current: toReturn,
           next: {
             ...bulkCreateResult,
-            suppressedItemsCount: getNumberOfSuppressedAlerts(bulkCreateResult.createdItems, []),
+            suppressedItemsCount: suppressedCount,
           },
         });
+
+        // Log per-execution suppression results (trace-only)
+        sharedParams.ruleExecutionLogger.traceOnly('[Alert Suppression] Per-execution suppression complete', {
+          inputAlerts: wrappedAlerts.length,
+          createdAlerts: bulkCreateResult.createdItemsCount,
+          totalEventsSuppressed: totalSuppressedByGrouping,
+        });
+
         sharedParams.ruleExecutionLogger.debug(
           `created ${bulkCreateResult.createdItemsCount} signals`
         );

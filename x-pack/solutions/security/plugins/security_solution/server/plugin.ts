@@ -193,6 +193,7 @@ export class Plugin implements ISecuritySolutionPlugin {
     this.pluginContext = context;
     this.config = serverConfig;
     this.logger = context.logger.get();
+    this.isServerless = context.env.packageInfo.buildFlavor === 'serverless';
     this.appClientFactory = new AppClientFactory();
     this.productFeaturesService = new ProductFeaturesService(
       this.logger,
@@ -226,8 +227,6 @@ export class Plugin implements ISecuritySolutionPlugin {
     this.completeExternalResponseActionsTask = new CompleteExternalResponseActionsTask({
       endpointAppContext: this.endpointContext,
     });
-    this.isServerless = context.env.packageInfo.buildFlavor === 'serverless';
-
     this.logger.debug('plugin initialized');
 
     this.healthDiagnosticService = new HealthDiagnosticServiceImpl(this.logger);
@@ -952,6 +951,7 @@ export class Plugin implements ISecuritySolutionPlugin {
 
   public stop() {
     this.logger.debug('Stopping plugin');
+    this.ruleMonitoringService.stop();
     this.asyncTelemetryEventsSender.stop().catch(() => {});
     this.telemetryEventsSender.stop();
     this.endpointAppContextService.stop();

@@ -6,7 +6,7 @@
  */
 
 import agent from 'elastic-apm-node';
-import type { Logger } from '@kbn/core/server';
+import type { Logger, SavedObjectsClientContract } from '@kbn/core/server';
 import { sum } from 'lodash';
 import type { Duration } from 'moment';
 
@@ -31,12 +31,15 @@ import { withSecuritySpan } from '../../../../../../utils/with_security_span';
 import type { ExtMeta } from '../../utils/console_logging';
 import { truncateValue } from '../../utils/normalization';
 import { getCorrelationIds } from './correlation_ids';
+import type { RuleExecutionTraceWriter } from '../../rule_execution_trace/writer';
+import { summarizeEsResponse } from '../../rule_execution_trace/es_response_utils';
 
 import type { IEventLogWriter } from '../event_log/event_log_writer';
 import type {
   IRuleExecutionLogForExecutors,
   RuleExecutionContext,
   StatusChangeArgs,
+  TraceEsRequestArgs,
 } from './client_interface';
 import type { RuleExecutionMetrics } from '../../../../../../../common/api/detection_engine/rule_monitoring/model';
 import { LogLevelEnum } from '../../../../../../../common/api/detection_engine/rule_monitoring/model';
@@ -48,13 +51,16 @@ export const createRuleExecutionLogClientForExecutors = (
   logger: Logger,
   context: RuleExecutionContext,
   ruleMonitoringService: PublicRuleMonitoringService,
-  ruleResultService: PublicRuleResultService
+  ruleResultService: PublicRuleResultService,
+  savedObjectsClient: SavedObjectsClientContract,
+  traceWriter?: RuleExecutionTraceWriter
 ): IRuleExecutionLogForExecutors => {
   const baseCorrelationIds = getCorrelationIds(context);
   const baseLogSuffix = baseCorrelationIds.getLogSuffix();
   const baseLogMeta = baseCorrelationIds.getLogMeta();
 
   const { executionId, ruleId, ruleUuid, ruleName, ruleRevision, ruleType, spaceId } = context;
+  let traceSeq = 0;
 
   const client: IRuleExecutionLogForExecutors = {
     get context() {
@@ -102,12 +108,119 @@ export const createRuleExecutionLogClientForExecutors = (
         }
       });
     },
+
+    traceOnly(message: string, data?: Record<string, unknown>): void {
+      // Write ONLY to trace, not to console or event log
+      void writeTraceOnly(message, data);
+    },
+
+    traceEsRequest(args: TraceEsRequestArgs): void {
+      void writeTraceEsRequest(args);
+    },
   };
 
   const writeMessage = (messages: string[], logLevel: LogLevel): void => {
     const message = messages.join(' ');
     writeMessageToConsole(message, logLevel, baseLogMeta);
     writeMessageToEventLog(message, logLevel);
+    void writeMessageToTrace(message, logLevel);
+  };
+
+  const writeMessageToTrace = async (message: string, logLevel: LogLevel): Promise<void> => {
+    if (!traceWriter) {
+      return;
+    }
+    traceSeq += 1;
+    const nowIso = new Date().toISOString();
+    await traceWriter.maybeWriteLog({
+      soClient: savedObjectsClient,
+      context: { spaceId, ruleId, executionId },
+      nowIso,
+      seq: traceSeq,
+      level: logLevel,
+      loggerName: 'plugins.securitySolution.ruleExecution',
+      messageText: message,
+    });
+  };
+
+  // Write trace-only messages (not to console or event log)
+  const writeTraceOnly = async (message: string, data?: Record<string, unknown>): Promise<void> => {
+    // Always log that trace was called (so user can see it in Kibana logs)
+    logger.info(`[TRACE_ONLY] ${message}`);
+
+    if (!traceWriter) {
+      logger.info(`[TRACE_ONLY] No traceWriter available`);
+      return;
+    }
+    traceSeq += 1;
+    const nowIso = new Date().toISOString();
+    const messageWithData = data ? `${message} | ${JSON.stringify(data)}` : message;
+    await traceWriter.maybeWriteLog({
+      soClient: savedObjectsClient,
+      context: { spaceId, ruleId, executionId },
+      nowIso,
+      seq: traceSeq,
+      level: 'trace',
+      loggerName: 'plugins.securitySolution.ruleExecution.trace',
+      messageText: messageWithData,
+      message: data,
+    });
+  };
+
+  // Write ES request/response trace
+  const writeTraceEsRequest = async (args: TraceEsRequestArgs): Promise<void> => {
+    const { description, request, response, durationMs, error } = args;
+
+    // Always log that ES request trace was called (so user can see it in Kibana logs)
+    const hitCount = response?.hits?.total
+      ? typeof response.hits.total === 'number'
+        ? response.hits.total
+        : response.hits.total.value
+      : 0;
+    logger.info(
+      `[TRACE_ES] ${description} → ${hitCount} hits, ${durationMs ?? '?'}ms${
+        error ? ` ERROR: ${error.message}` : ''
+      }`
+    );
+
+    if (!traceWriter) {
+      return;
+    }
+
+    // Format the trace message
+    let messageText = `[ES Request] ${description}`;
+    if (durationMs !== undefined) {
+      messageText += ` (${durationMs}ms)`;
+    }
+    if (error) {
+      messageText += ` ERROR: ${error.message}`;
+    } else if (response) {
+      const hitCount =
+        typeof response.hits?.total === 'number'
+          ? response.hits.total
+          : response.hits?.total?.value ?? 0;
+      messageText += ` → ${hitCount} hits, took ${response.took ?? '?'}ms`;
+    }
+
+    traceSeq += 1;
+    const nowIso = new Date().toISOString();
+
+    await traceWriter.maybeWriteLog({
+      soClient: savedObjectsClient,
+      context: { spaceId, ruleId, executionId },
+      nowIso,
+      seq: traceSeq,
+      level: 'trace',
+      loggerName: 'plugins.securitySolution.ruleExecution.esRequest',
+      messageText,
+      message: {
+        description,
+        request,
+        response: response ? summarizeEsResponse(response) : undefined,
+        durationMs,
+        error: error ? { message: error.message, stack: error.stack } : undefined,
+      },
+    });
   };
 
   const writeMessageToConsole = (message: string, logLevel: LogLevel, logMeta: ExtMeta): void => {
@@ -157,7 +270,9 @@ export const createRuleExecutionLogClientForExecutors = (
 
   const writeExceptionToConsole = (e: unknown, message: string, logMeta: ExtMeta): void => {
     const logReason = e instanceof Error ? e.stack ?? e.message : String(e);
-    writeMessageToConsole(`${message}. Reason: ${logReason}`, LogLevelEnum.error, logMeta);
+    const combined = `${message}. Reason: ${logReason}`;
+    writeMessageToConsole(combined, LogLevelEnum.error, logMeta);
+    void writeMessageToTrace(combined, LogLevelEnum.error);
   };
 
   const writeStatusChangeToConsole = (args: NormalizedStatusChangeArgs, logMeta: ExtMeta): void => {
@@ -165,6 +280,7 @@ export const createRuleExecutionLogClientForExecutors = (
     const logMessage = messageParts.filter(Boolean).join('. ');
     const logLevel = consoleLogLevelFromExecutionStatus(args.newStatus, args.userError);
     writeMessageToConsole(logMessage, logLevel, logMeta);
+    void writeMessageToTrace(logMessage, logLevel);
   };
 
   const writeStatusChangeToRuleObject = async (args: NormalizedStatusChangeArgs): Promise<void> => {

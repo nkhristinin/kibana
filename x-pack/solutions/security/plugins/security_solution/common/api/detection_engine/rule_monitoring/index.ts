@@ -12,6 +12,8 @@ export * from './detection_engine_health/setup_health/setup_health_route';
 export * from './detection_engine_health/model';
 export * from './rule_execution_logs/get_rule_execution_events/get_rule_execution_events_route.gen';
 export * from './rule_execution_logs/get_rule_execution_results/get_rule_execution_results_route.gen';
+export * from './rule_execution_trace/connect_rule_execution_trace_route';
+export * from './rule_execution_trace/tail_rule_execution_trace_route';
 export * from './urls';
 
 export * from './model/execution_event.gen';

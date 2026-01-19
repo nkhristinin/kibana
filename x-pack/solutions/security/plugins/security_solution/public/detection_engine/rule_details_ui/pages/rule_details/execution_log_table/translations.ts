@@ -210,6 +210,98 @@ export const COLUMN_ACTIONS_TOOLTIP = i18n.translate(
   }
 );
 
+export const ACTION_VIEW_EXECUTION_TRACE = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.ruleExecutionLog.actionViewExecutionTrace',
+  {
+    defaultMessage: 'View execution trace',
+  }
+);
+
+export const ACTION_VIEW_EXECUTION_TRACE_TOOLTIP = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.ruleExecutionLog.actionViewExecutionTraceTooltip',
+  {
+    defaultMessage: 'Connect to a live stream of rule execution log lines.',
+  }
+);
+
+export const CONNECT_TO_LIVE_LOG = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.connectButton',
+  {
+    defaultMessage: 'Connect to live log',
+  }
+);
+
+export const DISCONNECT_FROM_LIVE_LOG = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.disconnectButton',
+  {
+    defaultMessage: 'Disconnect from live log',
+  }
+);
+
+export const EXECUTION_TRACE_FLYOUT_TITLE = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.flyoutTitle',
+  {
+    defaultMessage: 'Execution trace',
+  }
+);
+
+export const EXECUTION_TRACE_EXECUTION_ID = (executionId: string) =>
+  i18n.translate('xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.executionId', {
+    defaultMessage: 'Execution: {executionId}',
+    values: { executionId },
+  });
+
+export const EXECUTION_TRACE_RULE_ID = (ruleId: string) =>
+  i18n.translate('xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.ruleId', {
+    defaultMessage: 'Rule: {ruleId}',
+    values: { ruleId },
+  });
+
+export const EXECUTION_TRACE_CONNECTING = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.connecting',
+  { defaultMessage: 'Connecting…' }
+);
+
+export const EXECUTION_TRACE_CONNECTED = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.connected',
+  { defaultMessage: 'Connected' }
+);
+
+export const EXECUTION_TRACE_ERROR = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.error',
+  { defaultMessage: 'Error' }
+);
+
+export const EXECUTION_TRACE_DOWNLOAD = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.download',
+  { defaultMessage: 'Download log' }
+);
+
+export const EXECUTION_TRACE_PAUSE = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.pause',
+  { defaultMessage: 'Pause' }
+);
+
+export const EXECUTION_TRACE_RESUME = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.resume',
+  { defaultMessage: 'Resume' }
+);
+
+export const EXECUTION_TRACE_LEVEL_FILTER = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.levelFilter',
+  { defaultMessage: 'Level filter' }
+);
+
+export const EXECUTION_TRACE_LEVEL_ALL = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.levelAll',
+  { defaultMessage: 'All levels' }
+);
+
+export const EXECUTION_TRACE_NO_LOGS_YET = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.noLogsYet',
+  { defaultMessage: 'No trace logs yet.' }
+);
+
 export const ACTIONS_SEARCH_FILTERS_HAVE_BEEN_UPDATED_TITLE = i18n.translate(
   'xpack.securitySolution.detectionEngine.ruleDetails.ruleExecutionLog.actionSearchFiltersUpdatedTitle',
   {
@@ -284,5 +376,61 @@ export const COLLAPSE = i18n.translate(
   'xpack.securitySolution.detectionEngine.ruleDetails.ruleExecutionLog.collapse',
   {
     defaultMessage: 'Collapse',
+  }
+);
+
+export const ASK_AI_BUTTON = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.askAiButton',
+  {
+    defaultMessage: 'Ask AI',
+  }
+);
+
+export const ASK_AI_TOOLTIP_DISABLED = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.askAiTooltipDisabled',
+  {
+    defaultMessage: 'AI Assistant requires Enterprise license',
+  }
+);
+
+export const STATS_DURATION = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.statsDuration',
+  {
+    defaultMessage: 'Duration',
+  }
+);
+
+export const STATS_SEARCH_TIME = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.statsSearchTime',
+  {
+    defaultMessage: 'Search Time',
+  }
+);
+
+export const STATS_EVENTS = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.statsEvents',
+  {
+    defaultMessage: 'Events',
+  }
+);
+
+export const STATS_ALERTS = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.statsAlerts',
+  {
+    defaultMessage: 'Alerts',
+  }
+);
+
+export const STATS_SUPPRESSED = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.statsSuppressed',
+  {
+    defaultMessage: 'Suppressed',
+  }
+);
+
+export const STATS_ERRORS = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleDetails.executionTrace.statsErrors',
+  {
+    defaultMessage: 'Errors',
   }
 );
