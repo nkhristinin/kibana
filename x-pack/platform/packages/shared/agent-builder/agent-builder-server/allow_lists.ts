@@ -38,6 +38,14 @@ export const AGENT_BUILDER_BUILTIN_TOOLS = [
   `${internalNamespaces.security}.attack_discovery_search`,
   `${internalNamespaces.security}.security_labs_search`,
   `${internalNamespaces.security}.alerts`,
+  `${internalNamespaces.security}.find_rules`,
+  `${internalNamespaces.security}.get_rule_details`,
+  `${internalNamespaces.security}.rule_execution_history`,
+  `${internalNamespaces.security}.rule_gaps`,
+  `${internalNamespaces.security}.rules_health`,
+  `${internalNamespaces.security}.coverage_overview`,
+  `${internalNamespaces.security}.prebuilt_rules_status`,
+  `${internalNamespaces.security}.execution_stats`,
 ] as const;
 
 export type AgentBuilderBuiltinTool = (typeof AGENT_BUILDER_BUILTIN_TOOLS)[number];
