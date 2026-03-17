@@ -6,10 +6,13 @@
  */
 import type { QueryEventsBySavedObjectResult } from '@kbn/event-log-plugin/server';
 import { isNumber } from 'lodash';
+import type { GapReason } from '../../../../common/constants';
+import { gapReasonType } from '../../../../common/constants';
 import { Gap } from '../gap';
 import type { StringInterval } from '../../../application/gaps/types/intervals';
 
 type PotentialInterval = { lte?: string; gte?: string } | undefined;
+type PotentialGapReason = { type?: string } | undefined;
 
 const validateInterval = (interval: PotentialInterval): StringInterval | null => {
   if (!interval?.gte || !interval?.lte) return null;
@@ -23,6 +26,17 @@ const validateInterval = (interval: PotentialInterval): StringInterval | null =>
 const validateIntervals = (intervals: PotentialInterval[] | undefined): StringInterval[] =>
   (intervals?.map(validateInterval)?.filter((interval) => interval !== null) as StringInterval[]) ??
   [];
+
+const validateReason = (reason: PotentialGapReason): GapReason | undefined => {
+  if (
+    reason?.type !== gapReasonType.RULE_DISABLED &&
+    reason?.type !== gapReasonType.RULE_DID_NOT_RUN
+  ) {
+    return undefined;
+  }
+
+  return { type: reason.type };
+};
 
 /**
  * Transforms event log results into Gap objects
@@ -49,6 +63,7 @@ export const transformToGap = (events: Pick<QueryEventsBySavedObjectResult, 'dat
 
       const filledIntervals = validateIntervals(gap?.filled_intervals);
       const inProgressIntervals = validateIntervals(gap?.in_progress_intervals);
+      const reason = validateReason(gap?.reason);
 
       const failedAutoFillAttempts = isNumber(gap?.failed_auto_fill_attempts)
         ? gap!.failed_auto_fill_attempts
@@ -68,6 +83,7 @@ export const transformToGap = (events: Pick<QueryEventsBySavedObjectResult, 'dat
           _primary_term: doc._primary_term,
         },
         failedAutoFillAttempts,
+        reason,
       });
     })
     .filter((gap): gap is Gap => gap !== null);

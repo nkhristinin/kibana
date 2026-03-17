@@ -6,6 +6,7 @@
  */
 
 import type { Duration } from 'moment';
+import type { GapReason } from '@kbn/alerting-plugin/common';
 import type {
   LogLevel,
   RuleExecutionStatus,
@@ -137,5 +138,6 @@ export interface MetricsArgs {
   enrichmentDurations?: string[];
   executionGap?: Duration;
   gapRange?: { gte: string; lte: string };
+  gapReason?: GapReason;
   frozenIndicesQueriedCount?: number;
 }

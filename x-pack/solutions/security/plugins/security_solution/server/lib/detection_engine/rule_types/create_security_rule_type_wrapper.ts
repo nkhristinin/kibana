@@ -369,6 +369,7 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
             remainingGap,
             warningStatusMessage: rangeTuplesWarningMessage,
             gap,
+            gapReason: detectedGapReason,
             originalFrom,
             originalTo,
           } = await getRuleRangeTuples({
@@ -380,6 +381,7 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
             maxSignals: maxSignals ?? DEFAULT_MAX_SIGNALS,
             ruleExecutionLogger,
             alerting,
+            lastEnabledAt: rule.lastEnabledAt,
           });
           if (rangeTuplesWarningMessage != null) {
             wrapperWarnings.push(rangeTuplesWarningMessage);
@@ -387,7 +389,7 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
 
           agent.setCustomContext({ [SECURITY_NUM_RANGE_TUPLES]: tuples.length });
 
-          if (remainingGap.asMilliseconds() > 0) {
+          if (remainingGap.asMilliseconds() > 0 && detectedGapReason) {
             const gapDuration = `${remainingGap.humanize()} (${remainingGap.asMilliseconds()}ms)`;
             const gapErrorMessage = `${gapDuration} were not queried between this rule execution and the last execution, so signals may have been missed. Consider increasing your look behind time or adding more Kibana instances`;
             if (analytics) {
@@ -398,6 +400,7 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
                 originalFrom,
                 originalTo,
                 ruleParams: params,
+                gapReasonType: detectedGapReason.type,
               });
             }
             wrapperErrors.push(gapErrorMessage);
@@ -407,6 +410,9 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
               metrics: {
                 executionGap: remainingGap,
                 gapRange: experimentalFeatures.storeGapsInEventLogEnabled ? gap : undefined,
+                gapReason: experimentalFeatures.storeGapsInEventLogEnabled
+                  ? detectedGapReason
+                  : undefined,
               },
             });
           }

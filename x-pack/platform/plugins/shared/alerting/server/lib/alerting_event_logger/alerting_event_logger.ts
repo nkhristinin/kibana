@@ -18,6 +18,7 @@ import { createAlertEventLogRecordObject } from '../create_alert_event_log_recor
 import type { RuleRunMetrics } from '../rule_run_metrics_store';
 import { Gap } from '../rule_gaps/gap';
 import type { GapBase } from '../../application/gaps/types';
+import type { GapReason } from '../../../common/constants';
 
 // 1,000,000 nanoseconds in 1 millisecond
 const Millis2Nanos = 1000 * 1000;
@@ -398,11 +399,13 @@ export class AlertingEventLogger {
 
   public reportGap({
     gap,
+    reason,
   }: {
     gap: {
       lte: string;
       gte: string;
     };
+    reason: GapReason;
   }): void {
     if (!this.isInitialized || !this.context || !this.ruleData) {
       throw new Error('AlertingEventLogger not initialized');
@@ -411,6 +414,7 @@ export class AlertingEventLogger {
     const gapToReport = new Gap({
       ruleId: this.ruleData.id,
       range: gap,
+      reason,
     });
 
     this.logEventWithFixedUuid(
@@ -546,6 +550,7 @@ export function createGapRecord(
       gte: string;
       lte: string;
     };
+    reason: GapReason;
   }
 ) {
   return createAlertEventLogRecordObject({

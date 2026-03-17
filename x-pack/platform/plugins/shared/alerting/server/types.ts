@@ -62,6 +62,7 @@ import type {
   SanitizedRule,
   RuleAlertData,
   Artifacts,
+  GapReason,
 } from '../common';
 import type { PublicAlertFactory } from './alert/create_alert_factory';
 import type { RulesSettingsFlappingProperties } from '../common/rules_settings';
@@ -457,7 +458,9 @@ export interface PublicMetricsSetters {
   setLastRunMetricsTotalAlertsDetected: (totalAlertDetected: number) => void;
   setLastRunMetricsTotalAlertsCreated: (totalAlertCreated: number) => void;
   setLastRunMetricsGapDurationS: (gapDurationS: number) => void;
-  setLastRunMetricsGapRange: (gapRange: { lte: string; gte: string } | null) => void;
+  setLastRunMetricsGap: (
+    gap: { range: { gte: string; lte: string }; reason: GapReason } | null
+  ) => void;
 }
 
 export interface PublicLastRunSetters {
