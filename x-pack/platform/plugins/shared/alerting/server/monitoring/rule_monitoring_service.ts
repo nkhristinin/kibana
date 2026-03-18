@@ -92,8 +92,13 @@ export class RuleMonitoringService {
     gap: { range: { gte: string; lte: string }; reason?: GapReason } | null
   ) {
     this.monitoring.run.last_run.metrics.gap_range = gap?.range ?? null;
+    // Only write gap_reason when explicitly provided to avoid writing the field
+    // before the feature flag is enabled (intermediate schema-only release).
+    // Clear it if a previous run had set it to avoid stale values.
     if (gap?.reason) {
       this.monitoring.run.last_run.metrics.gap_reason = gap.reason as { type: string };
+    } else if (this.monitoring.run.last_run.metrics.gap_reason) {
+      this.monitoring.run.last_run.metrics.gap_reason = null;
     }
   }
 
