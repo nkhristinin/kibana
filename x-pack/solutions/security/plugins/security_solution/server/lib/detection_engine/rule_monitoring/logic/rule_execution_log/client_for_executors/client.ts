@@ -212,7 +212,7 @@ export const createRuleExecutionLogClientForExecutors = (
       ruleMonitoringService.setLastRunMetricsGapDurationS(executionGapDurationS);
     }
 
-    if (gapRange && gapReason) {
+    if (gapRange) {
       ruleMonitoringService.setLastRunMetricsGap({
         range: gapRange,
         reason: gapReason,

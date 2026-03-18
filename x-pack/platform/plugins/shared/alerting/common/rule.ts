@@ -15,7 +15,6 @@ import type {
   RuleActionParam,
   AlertsFilter,
 } from '@kbn/alerting-types';
-import type { GapReason } from './constants';
 
 export type {
   ActionVariable,
@@ -116,5 +115,5 @@ export interface RuleMonitoringLastRunMetrics extends SavedObjectAttributes {
     lte: string;
     gte: string;
   } | null;
-  gap_reason?: GapReason | null;
+  gap_reason?: { type: string } | null;
 }

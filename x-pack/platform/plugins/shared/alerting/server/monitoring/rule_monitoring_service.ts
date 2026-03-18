@@ -89,10 +89,12 @@ export class RuleMonitoringService {
   }
 
   private setLastRunMetricsGap(
-    gap: { range: { gte: string; lte: string }; reason: GapReason } | null
+    gap: { range: { gte: string; lte: string }; reason?: GapReason } | null
   ) {
     this.monitoring.run.last_run.metrics.gap_range = gap?.range ?? null;
-    this.monitoring.run.last_run.metrics.gap_reason = gap?.reason ?? null;
+    if (gap?.reason) {
+      this.monitoring.run.last_run.metrics.gap_reason = gap.reason as { type: string };
+    }
   }
 
   private buildExecutionSuccessRatio() {

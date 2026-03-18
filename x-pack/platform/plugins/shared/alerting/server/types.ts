@@ -459,7 +459,7 @@ export interface PublicMetricsSetters {
   setLastRunMetricsTotalAlertsCreated: (totalAlertCreated: number) => void;
   setLastRunMetricsGapDurationS: (gapDurationS: number) => void;
   setLastRunMetricsGap: (
-    gap: { range: { gte: string; lte: string }; reason: GapReason } | null
+    gap: { range: { gte: string; lte: string }; reason?: GapReason } | null
   ) => void;
 }
 

@@ -26,7 +26,7 @@ export const sendGapDetectedTelemetryEvent = ({
   originalFrom: moment.Moment;
   originalTo: moment.Moment;
   ruleParams: RuleParams;
-  gapReasonType: GapReasonType;
+  gapReasonType?: GapReasonType;
 }) => {
   const intervalDuration = parseInterval(interval);
 

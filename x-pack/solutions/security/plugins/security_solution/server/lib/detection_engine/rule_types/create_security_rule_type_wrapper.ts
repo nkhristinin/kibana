@@ -389,7 +389,11 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
 
           agent.setCustomContext({ [SECURITY_NUM_RANGE_TUPLES]: tuples.length });
 
-          if (remainingGap.asMilliseconds() > 0 && detectedGapReason) {
+          const gapReason = experimentalFeatures.gapReasonDetectionEnabled
+            ? detectedGapReason
+            : undefined;
+
+          if (remainingGap.asMilliseconds() > 0) {
             const gapDuration = `${remainingGap.humanize()} (${remainingGap.asMilliseconds()}ms)`;
             const gapErrorMessage = `${gapDuration} were not queried between this rule execution and the last execution, so signals may have been missed. Consider increasing your look behind time or adding more Kibana instances`;
             if (analytics) {
@@ -400,7 +404,7 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
                 originalFrom,
                 originalTo,
                 ruleParams: params,
-                gapReasonType: detectedGapReason.type,
+                gapReasonType: gapReason?.type,
               });
             }
             wrapperErrors.push(gapErrorMessage);
@@ -409,10 +413,8 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
               message: gapErrorMessage,
               metrics: {
                 executionGap: remainingGap,
-                gapRange: experimentalFeatures.storeGapsInEventLogEnabled ? gap : undefined,
-                gapReason: experimentalFeatures.storeGapsInEventLogEnabled
-                  ? detectedGapReason
-                  : undefined,
+                gapRange: gap,
+                gapReason,
               },
             });
           }
@@ -596,7 +598,8 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
                   indexingDurations: result.bulkCreateTimes,
                   enrichmentDurations: result.enrichmentTimes,
                   executionGap: remainingGap,
-                  gapRange: experimentalFeatures.storeGapsInEventLogEnabled ? gap : undefined,
+                  gapRange: gap,
+                  gapReason,
                   frozenIndicesQueriedCount,
                 },
                 userError:

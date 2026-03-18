@@ -27,15 +27,15 @@ const validateIntervals = (intervals: PotentialInterval[] | undefined): StringIn
   (intervals?.map(validateInterval)?.filter((interval) => interval !== null) as StringInterval[]) ??
   [];
 
-const validateReason = (reason: PotentialGapReason): GapReason | undefined => {
+const validateReason = (reason: PotentialGapReason): GapReason => {
   if (
-    reason?.type !== gapReasonType.RULE_DISABLED &&
-    reason?.type !== gapReasonType.RULE_DID_NOT_RUN
+    reason?.type === gapReasonType.RULE_DISABLED ||
+    reason?.type === gapReasonType.RULE_DID_NOT_RUN
   ) {
-    return undefined;
+    return { type: reason.type };
   }
 
-  return { type: reason.type };
+  return { type: gapReasonType.RULE_DID_NOT_RUN };
 };
 
 /**

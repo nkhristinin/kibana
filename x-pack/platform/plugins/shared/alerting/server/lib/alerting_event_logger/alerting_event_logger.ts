@@ -405,7 +405,7 @@ export class AlertingEventLogger {
       lte: string;
       gte: string;
     };
-    reason: GapReason;
+    reason?: GapReason;
   }): void {
     if (!this.isInitialized || !this.context || !this.ruleData) {
       throw new Error('AlertingEventLogger not initialized');
@@ -550,7 +550,7 @@ export function createGapRecord(
       gte: string;
       lte: string;
     };
-    reason: GapReason;
+    reason?: GapReason;
   }
 ) {
   return createAlertEventLogRecordObject({

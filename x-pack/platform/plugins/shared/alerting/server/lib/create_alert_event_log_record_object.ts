@@ -51,7 +51,7 @@ interface CreateAlertEventLogRecordParams {
       gte: string;
       lte: string;
     };
-    reason: GapReason;
+    reason?: GapReason;
   };
 }
 

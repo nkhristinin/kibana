@@ -46,7 +46,7 @@ import type {
   RuleTypeState,
 } from '../../common';
 import { RuleLastRunOutcomeOrderMap } from '../../common';
-import type { RuleMonitoringLastRunMetrics } from '../../common';
+import type { RuleMonitoringLastRunMetrics, GapReason } from '../../common';
 import type { NormalizedRuleType, UntypedNormalizedRuleType } from '../rule_type_registry';
 import type { InMemoryMetrics } from '../monitoring';
 import { IN_MEMORY_METRICS } from '../monitoring';
@@ -656,10 +656,10 @@ export class TaskRunner<
         const { gap_range: gapRange, gap_reason: gapReasonValue } =
           (this.ruleMonitoring.getMonitoring()?.run?.last_run
             ?.metrics as RuleMonitoringLastRunMetrics) ?? {};
-        if (gapRange && gapReasonValue) {
+        if (gapRange) {
           this.alertingEventLogger.reportGap({
             gap: gapRange,
-            reason: gapReasonValue,
+            reason: (gapReasonValue as GapReason) ?? undefined,
           });
         }
 
