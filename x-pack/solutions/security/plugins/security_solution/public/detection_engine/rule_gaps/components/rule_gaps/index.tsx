@@ -33,7 +33,7 @@ import { useKibana } from '../../../../common/lib/kibana';
 import { getEmptyTagValue } from '../../../../common/components/empty_value';
 import * as i18n from './translations';
 import type { Gap, GapStatus } from '../../types';
-import { getStatusLabel } from './utils';
+import { getStatusLabel, getReasonLabel } from './utils';
 import { GapStatusFilter } from './status_filter';
 import { useFindGapsForRule } from '../../api/hooks/use_find_gaps_for_rule';
 import { FillGap } from './fill_gap';
@@ -78,6 +78,17 @@ const getGapsTableColumns = (hasCRUDPermissions: boolean, ruleId: string, enable
 
         return status;
       },
+      width: '10%',
+    },
+    {
+      field: 'reason',
+      name: (
+        <TableHeaderTooltipCell
+          title={i18n.GAPS_TABLE_REASON_LABEL}
+          tooltipContent={i18n.GAPS_TABLE_REASON_LABEL_TOOLTIP}
+        />
+      ),
+      render: (value: Gap['reason']) => getReasonLabel(value?.type),
       width: '10%',
     },
     {
