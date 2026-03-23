@@ -160,11 +160,6 @@ export const RuleGapSummaryChart: React.FC<RuleGapSummaryChartProps> = ({ enable
         ),
       },
       {
-        field: 'rulesCount',
-        name: i18n.TABLE_COLUMN_RULES,
-        align: 'right',
-      },
-      {
         field: 'duration',
         name: i18n.TABLE_COLUMN_DURATION,
         align: 'right',
