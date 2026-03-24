@@ -442,8 +442,7 @@ export async function performBulkAction({
         : undefined,
     fill_gaps:
       bulkAction.type === BulkActionTypeEnum.fill_gaps ? bulkAction.fillGapsPayload : undefined,
-    gap_auto_fill_scheduler_id:
-      'schedulerId' in bulkAction ? bulkAction.schedulerId : undefined,
+    gap_auto_fill_scheduler_id: 'schedulerId' in bulkAction ? bulkAction.schedulerId : undefined,
   };
 
   return KibanaServices.get().http.fetch<BulkActionResponse>(DETECTION_ENGINE_RULES_BULK_ACTION, {
