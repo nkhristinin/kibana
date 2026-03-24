@@ -791,6 +791,7 @@ export const useBulkActions = ({
       alertSuppressionUpsellingMessage,
       globalQuery,
       showBulkFillRuleGapsConfirmation,
+      activeSchedulerId,
     ]
   );
 
