@@ -285,7 +285,6 @@ describe('utils', () => {
         exhaustedRetryUnfilledDurationMs: 0,
       });
     });
-
   });
 
   describe('hasMatchedGapFillStatus', () => {
