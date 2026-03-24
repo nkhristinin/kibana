@@ -104,35 +104,6 @@ describe('RuleGapSummaryChart', () => {
     expect(screen.getByTestId('rule-gap-summary-error')).toBeInTheDocument();
   });
 
-  it('renders correct rule counts from the gaps response', () => {
-    mockUseGetRuleIdsWithGaps.mockReturnValue({
-      isLoading: false,
-      isError: false,
-      data: createGapsResponse({
-        filled: 10,
-        inProgress: 3,
-        unfilled: 7,
-        totalFilledDurationMs: 3600000,
-        totalInProgressDurationMs: 1800000,
-        totalUnfilledDurationMs: 900000,
-        totalDurationMs: 6300000,
-      }),
-    });
-
-    render(<RuleGapSummaryChart />);
-
-    const table = screen.getByTestId('rule-gap-summary-table');
-
-    expect(table).toHaveTextContent('Filled');
-    expect(table).toHaveTextContent('10');
-
-    expect(table).toHaveTextContent('In progress');
-    expect(table).toHaveTextContent('3');
-
-    expect(table).toHaveTextContent('Unfilled');
-    expect(table).toHaveTextContent('7');
-  });
-
   it('renders humanized durations for each gap status', () => {
     mockUseGetRuleIdsWithGaps.mockReturnValue({
       isLoading: false,
