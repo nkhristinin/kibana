@@ -93,12 +93,13 @@ export class RuleMonitoringService {
     return {
       setMetric: this.setMetric.bind(this),
       setMetrics: this.setMetrics.bind(this),
-      clearGapRange: this.clearGapRange.bind(this),
+      clearGap: this.clearGap.bind(this),
     };
   }
 
-  private clearGapRange(): void {
+  private clearGap(): void {
     delete this.metrics.gap_range;
+    delete this.metrics.gap_reason;
   }
 
   private buildExecutionSuccessRatio() {

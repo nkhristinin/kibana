@@ -469,7 +469,7 @@ export interface PublicRuleMonitoringService {
     value: ConsumerExecutionMetrics[MetricName]
   ) => void;
   setMetrics: (metrics: Partial<ConsumerExecutionMetrics>) => void;
-  clearGapRange: () => void;
+  clearGap: () => void;
 }
 
 export interface PublicLastRunSetters {
