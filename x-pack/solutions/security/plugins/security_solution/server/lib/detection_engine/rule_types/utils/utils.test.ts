@@ -17,7 +17,6 @@ import { gapReasonType } from '@kbn/alerting-plugin/common';
 import { alertsMock } from '@kbn/alerting-plugin/server/mocks';
 import { listMock } from '@kbn/lists-plugin/server/mocks';
 import type { ExceptionListClient } from '@kbn/lists-plugin/server';
-import { RuleExecutionStatusEnum } from '../../../../../common/api/detection_engine/rule_monitoring';
 import { getListArrayMock } from '../../../../../common/detection_engine/schemas/types/lists.mock';
 import { getExceptionListItemSchemaMock } from '@kbn/lists-plugin/common/schemas/response/exception_list_item_schema.mock';
 
@@ -684,7 +683,7 @@ describe('utils', () => {
         },
       };
 
-      const { foundNoIndices } = await hasTimestampFields({
+      const { foundNoIndices, warningMessage } = await hasTimestampFields({
         timestampField,
         timestampFieldCapsResponse: timestampFieldCapsResponse as TransportResult<
           FieldCapsResponse,
@@ -694,11 +693,9 @@ describe('utils', () => {
       });
 
       expect(foundNoIndices).toBeFalsy();
-      expect(ruleExecutionLogger.logStatusChange).toHaveBeenCalledWith({
-        newStatus: RuleExecutionStatusEnum['partial failure'],
-        message:
-          'The following indices are missing the timestamp override field "event.ingested": ["myfakeindex-1","myfakeindex-2"]',
-      });
+      expect(warningMessage).toBe(
+        'The following indices are missing the timestamp override field "event.ingested": ["myfakeindex-1","myfakeindex-2"]'
+      );
     });
 
     test('returns true when missing timestamp field', async () => {
@@ -725,7 +722,7 @@ describe('utils', () => {
         },
       };
 
-      const { foundNoIndices } = await hasTimestampFields({
+      const { foundNoIndices, warningMessage } = await hasTimestampFields({
         timestampField,
         timestampFieldCapsResponse: timestampFieldCapsResponse as TransportResult<
           FieldCapsResponse,
@@ -735,11 +732,9 @@ describe('utils', () => {
       });
 
       expect(foundNoIndices).toBeFalsy();
-      expect(ruleExecutionLogger.logStatusChange).toHaveBeenCalledWith({
-        newStatus: RuleExecutionStatusEnum['partial failure'],
-        message:
-          'The following indices are missing the timestamp field "@timestamp": ["myfakeindex-1","myfakeindex-2"]',
-      });
+      expect(warningMessage).toBe(
+        'The following indices are missing the timestamp field "@timestamp": ["myfakeindex-1","myfakeindex-2"]'
+      );
     });
   });
 

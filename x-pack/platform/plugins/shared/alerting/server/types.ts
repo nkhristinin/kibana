@@ -452,15 +452,24 @@ export type RulesSettingsClientApi = PublicMethodsOf<RulesSettingsClient>;
 export type RulesSettingsFlappingClientApi = PublicMethodsOf<RulesSettingsFlappingClient>;
 export type RulesSettingsQueryDelayClientApi = PublicMethodsOf<RulesSettingsQueryDelayClient>;
 
-export interface PublicMetricsSetters {
-  setLastRunMetricsTotalSearchDurationMs: (totalSearchDurationMs: number) => void;
-  setLastRunMetricsTotalIndexingDurationMs: (totalIndexingDurationMs: number) => void;
-  setLastRunMetricsTotalAlertsDetected: (totalAlertDetected: number) => void;
-  setLastRunMetricsTotalAlertsCreated: (totalAlertCreated: number) => void;
-  setLastRunMetricsGapDurationS: (gapDurationS: number) => void;
-  setLastRunMetricsGap: (
-    gap: { range: { gte: string; lte: string }; reason?: GapReason } | null
+export interface ConsumerExecutionMetrics {
+  total_indexing_duration_ms: number;
+  total_enrichment_duration_ms: number;
+  gap_duration_s: number;
+  gap_range: { lte: string; gte: string };
+  alerts_candidate_count: number;
+  alerts_suppressed_count: number;
+  frozen_indices_queried_count: number;
+  gap_reason?: GapReason;
+}
+
+export interface PublicRuleMonitoringService {
+  setMetric: <MetricName extends keyof ConsumerExecutionMetrics>(
+    metricName: MetricName,
+    value: ConsumerExecutionMetrics[MetricName]
   ) => void;
+  setMetrics: (metrics: Partial<ConsumerExecutionMetrics>) => void;
+  clearGapRange: () => void;
 }
 
 export interface PublicLastRunSetters {
@@ -468,8 +477,6 @@ export interface PublicLastRunSetters {
   addLastRunWarning: (outcomeMsg: string) => void;
   setLastRunOutcomeMessage: (warning: string) => void;
 }
-
-export type PublicRuleMonitoringService = PublicMetricsSetters;
 
 export type PublicRuleResultService = PublicLastRunSetters;
 

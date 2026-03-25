@@ -40,7 +40,6 @@ import { gapReasonType } from '@kbn/alerting-plugin/common';
 import type { SuppressionFieldsLatest } from '@kbn/rule-registry-plugin/common/schemas';
 import type { TimestampOverride } from '../../../../../common/api/detection_engine/model/rule_schema';
 import type { Privilege } from '../../../../../common/api/detection_engine';
-import { RuleExecutionStatusEnum } from '../../../../../common/api/detection_engine/rule_monitoring';
 import type {
   SearchAfterAndBulkCreateReturnType,
   SignalSearchResponse,
@@ -111,10 +110,7 @@ export const hasTimestampFields = async (args: {
         : timestampFieldCapsResponse.body.fields[timestampField]?.unmapped?.indices
     )}`;
 
-    await ruleExecutionLogger.logStatusChange({
-      newStatus: RuleExecutionStatusEnum['partial failure'],
-      message: errorString,
-    });
+    ruleExecutionLogger.warn(errorString);
 
     return { foundNoIndices: false, warningMessage: errorString };
   }
@@ -399,10 +395,7 @@ export const getRuleRangeTuples = async ({
   if (maxSignals > maxAlertsAllowed) {
     maxSignalsToUse = maxAlertsAllowed;
     warningStatusMessage = `The rule's max alerts per run setting (${maxSignals}) is greater than the Kibana alerting limit (${maxAlertsAllowed}). The rule will only write a maximum of ${maxAlertsAllowed} alerts per rule run.`;
-    await ruleExecutionLogger.logStatusChange({
-      newStatus: RuleExecutionStatusEnum['partial failure'],
-      message: warningStatusMessage,
-    });
+    ruleExecutionLogger.warn(warningStatusMessage);
   }
 
   const tuples = [
