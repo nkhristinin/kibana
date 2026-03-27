@@ -12,8 +12,10 @@ export const transformRequest = ({
   rule_ids,
   start,
   end,
+  excluded_reasons,
 }: GetGapsSummaryByRuleIdsBodyV1): GetGapsSummaryByRuleIdsParams => ({
   ruleIds: rule_ids,
   start,
   end,
+  excludedReasons: excluded_reasons,
 });

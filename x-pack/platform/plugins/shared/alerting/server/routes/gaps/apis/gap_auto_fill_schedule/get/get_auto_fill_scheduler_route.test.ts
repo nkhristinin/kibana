@@ -69,6 +69,7 @@ describe('getAutoFillSchedulerRoute', () => {
         gap_fill_range: '24h',
         max_backfills: 100,
         num_retries: 3,
+        excluded_reasons: ['rule_disabled'],
         scope: ['test-space'],
         rule_types: [{ type: 'test-type', consumer: 'test-consumer' }],
         created_by: 'test-user',

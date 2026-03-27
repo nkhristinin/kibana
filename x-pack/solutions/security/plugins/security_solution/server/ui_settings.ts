@@ -7,7 +7,7 @@
 
 import { i18n } from '@kbn/i18n';
 import { schema } from '@kbn/config-schema';
-import { DEFAULT_EXCLUDED_GAP_REASONS } from '@kbn/alerting-plugin/common';
+import { DEFAULT_EXCLUDED_GAP_REASONS, gapReasonType } from '@kbn/alerting-plugin/common';
 
 import type { CoreSetup, UiSettingsParams } from '@kbn/core/server';
 import {
@@ -542,7 +542,12 @@ export const initUiSettings = (
       value: DEFAULT_EXCLUDED_GAP_REASONS,
       requiresPageReload: false,
       readonly: true,
-      schema: schema.arrayOf(schema.string()),
+      schema: schema.arrayOf(
+        schema.oneOf([
+          schema.literal(gapReasonType.RULE_DISABLED),
+          schema.literal(gapReasonType.RULE_DID_NOT_RUN),
+        ])
+      ),
     },
     ...getDefaultValueReportSettings(),
     ...(experimentalFeatures.extendedRuleExecutionLoggingEnabled

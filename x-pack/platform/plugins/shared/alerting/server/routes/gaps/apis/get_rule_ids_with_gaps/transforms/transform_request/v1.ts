@@ -17,4 +17,5 @@ export const transformRequest = (request: GetRuleIdsWithGapBodyV1): GetRuleIdsWi
   hasInProgressIntervals: request.has_in_progress_intervals,
   hasFilledIntervals: request.has_filled_intervals,
   sortOrder: request.sort_order,
+  excludedReasons: request.excluded_reasons,
 });

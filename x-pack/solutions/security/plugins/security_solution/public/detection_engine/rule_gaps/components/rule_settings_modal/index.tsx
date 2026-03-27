@@ -97,7 +97,6 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
         });
       }
 
-      // Also save to uiSetting for UI/API consumers
       await services.uiSettings?.set(EXCLUDED_GAP_REASONS_KEY, newExcludedReasons);
 
       addSuccess({

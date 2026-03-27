@@ -130,6 +130,7 @@ export const getRuleIdsWithGaps = async ({
   hasUnfilledIntervals,
   hasInProgressIntervals,
   hasFilledIntervals,
+  excludedReasons,
 }: {
   start: string;
   end: string;
@@ -137,6 +138,7 @@ export const getRuleIdsWithGaps = async ({
   hasUnfilledIntervals?: boolean;
   hasInProgressIntervals?: boolean;
   hasFilledIntervals?: boolean;
+  excludedReasons?: string[];
   signal?: AbortSignal;
 }): Promise<GetRuleIdsWithGapResponseBody> =>
   KibanaServices.get().http.fetch<GetRuleIdsWithGapResponseBody>(
@@ -156,6 +158,7 @@ export const getRuleIdsWithGaps = async ({
         ...(hasFilledIntervals !== undefined && {
           has_filled_intervals: hasFilledIntervals,
         }),
+        ...(excludedReasons?.length ? { excluded_reasons: excludedReasons } : {}),
       }),
       signal,
     }
@@ -172,10 +175,12 @@ export const getGapsSummaryByRuleIds = async ({
   start,
   end,
   ruleIds,
+  excludedReasons,
 }: {
   start: string;
   end: string;
   ruleIds: string[];
+  excludedReasons?: string[];
   signal?: AbortSignal;
 }): Promise<GetGapsSummaryByRuleIdsResponseBody> =>
   KibanaServices.get().http.fetch<GetGapsSummaryByRuleIdsResponseBody>(
@@ -187,6 +192,7 @@ export const getGapsSummaryByRuleIds = async ({
         start,
         end,
         rule_ids: ruleIds,
+        ...(excludedReasons?.length ? { excluded_reasons: excludedReasons } : {}),
       }),
     }
   );

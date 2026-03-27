@@ -76,6 +76,33 @@ describe('getGapsSummaryByRuleIdsRoute', () => {
     });
   });
 
+  test('should pass excluded_reasons through to rulesClient', async () => {
+    const licenseState = licenseStateMock.create();
+    const router = httpServiceMock.createRouter();
+
+    rulesClient.getGapsSummaryByRuleIds.mockResolvedValueOnce(mockResult);
+    getGapsSummaryByRuleIdsRoute(router, licenseState);
+
+    const bodyWithExcludedReasons = {
+      ...mockBody,
+      excluded_reasons: ['rule_disabled'],
+    };
+    const [, handler] = router.post.mock.calls[0];
+    const [context, req, res] = mockHandlerArguments(
+      { rulesClient },
+      { body: bodyWithExcludedReasons }
+    );
+
+    await handler(context, req, res);
+
+    expect(rulesClient.getGapsSummaryByRuleIds).toHaveBeenLastCalledWith({
+      start: mockBody.start,
+      end: mockBody.end,
+      ruleIds: mockBody.rule_ids,
+      excludedReasons: ['rule_disabled'],
+    });
+  });
+
   test('ensures the license allows for getting gaps info', async () => {
     const licenseState = licenseStateMock.create();
     const router = httpServiceMock.createRouter();

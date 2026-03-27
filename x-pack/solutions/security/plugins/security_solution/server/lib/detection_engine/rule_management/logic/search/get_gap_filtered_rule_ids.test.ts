@@ -377,6 +377,28 @@ describe('getGapFilteredRuleIds', () => {
       );
     });
 
+    it('should pass excludedReasons to getRuleIdsWithGaps', async () => {
+      rulesClient.getRuleIdsWithGaps.mockResolvedValue({
+        total: 0,
+        ruleIds: [],
+        summary: defaultSummary,
+      });
+
+      await getGapFilteredRuleIds({
+        rulesClient,
+        gapRange: defaultGapRange,
+        gapFillStatuses: defaultGapFillStatuses,
+        maxRuleIds: 10,
+        excludedReasons: ['rule_disabled'],
+      });
+
+      expect(rulesClient.getRuleIdsWithGaps).toHaveBeenCalledWith(
+        expect.objectContaining({
+          excludedReasons: ['rule_disabled'],
+        })
+      );
+    });
+
     it('should pass filter and ruleIds to findRules when filtering gap rules', async () => {
       rulesClient.getRuleIdsWithGaps.mockResolvedValue({
         total: 11,

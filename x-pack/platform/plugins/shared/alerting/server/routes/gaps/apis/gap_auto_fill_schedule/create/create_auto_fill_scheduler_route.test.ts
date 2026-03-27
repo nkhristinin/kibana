@@ -92,6 +92,7 @@ describe('createAutoFillSchedulerRoute', () => {
         scope: ['internal'],
         rule_types: [{ type: 'test-rule-type', consumer: 'test-consumer' }],
         num_retries: 3,
+        excluded_reasons: ['rule_disabled'],
         created_by: 'test-user',
         updated_by: 'test-user',
         created_at: '2024-01-01T00:00:00.000Z',

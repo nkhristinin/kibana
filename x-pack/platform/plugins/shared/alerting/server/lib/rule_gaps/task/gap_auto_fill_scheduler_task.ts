@@ -401,6 +401,7 @@ export function registerGapAutoFillSchedulerTask({
               schedule: { interval: string };
               maxBackfills: number;
               ruleTypes: Array<{ type: string; consumer: string }>;
+              excludedReasons?: string[];
             };
             let logEvent: ReturnType<typeof createGapAutoFillSchedulerEventLogger>;
             try {

@@ -167,4 +167,40 @@ describe('buildGapsFilter', () => {
       );
     });
   });
+
+  describe('excludedReasons filter', () => {
+    it('should build filter excluding a single reason', () => {
+      expect(buildGapsFilter({ excludedReasons: ['rule_disabled'] })).toBe(
+        `${BASE_GAPS_FILTER} AND ` + 'NOT (kibana.alert.rule.gap.reason.type: "rule_disabled")'
+      );
+    });
+
+    it('should build filter excluding multiple reasons', () => {
+      expect(buildGapsFilter({ excludedReasons: ['rule_disabled', 'rule_did_not_run'] })).toBe(
+        `${BASE_GAPS_FILTER} AND ` +
+          'NOT (kibana.alert.rule.gap.reason.type: "rule_disabled" OR kibana.alert.rule.gap.reason.type: "rule_did_not_run")'
+      );
+    });
+
+    it('should not add excludedReasons filter when empty array', () => {
+      expect(buildGapsFilter({ excludedReasons: [] })).toBe(BASE_GAPS_FILTER);
+    });
+
+    it('should not add excludedReasons filter when undefined', () => {
+      expect(buildGapsFilter({ excludedReasons: undefined })).toBe(BASE_GAPS_FILTER);
+    });
+
+    it('should combine excludedReasons with other filters', () => {
+      expect(
+        buildGapsFilter({
+          statuses: [gapStatus.UNFILLED],
+          excludedReasons: ['rule_disabled'],
+        })
+      ).toBe(
+        `${BASE_GAPS_FILTER} AND ` +
+          '(kibana.alert.rule.gap.status : unfilled) AND ' +
+          'NOT (kibana.alert.rule.gap.reason.type: "rule_disabled")'
+      );
+    });
+  });
 });

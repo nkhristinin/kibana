@@ -122,6 +122,32 @@ describe('getRuleIdsWithGapsRoute', () => {
     await expect(handler(context, req, res)).rejects.toMatchInlineSnapshot(`[Error: Failure]`);
   });
 
+  test('should pass excluded_reasons through to rulesClient', async () => {
+    const licenseState = licenseStateMock.create();
+    const router = httpServiceMock.createRouter();
+
+    getRuleIdsWithGapsRoute(router, licenseState);
+
+    rulesClient.getRuleIdsWithGaps.mockResolvedValueOnce(mockResult);
+    const bodyWithExcludedReasons = {
+      ...mockBody,
+      excluded_reasons: ['rule_disabled'],
+    };
+    const [, handler] = router.post.mock.calls[0];
+    const [context, req, res] = mockHandlerArguments(
+      { rulesClient },
+      { body: bodyWithExcludedReasons }
+    );
+
+    await handler(context, req, res);
+
+    expect(rulesClient.getRuleIdsWithGaps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        excludedReasons: ['rule_disabled'],
+      })
+    );
+  });
+
   test('should transform response with summary correctly', async () => {
     const licenseState = licenseStateMock.create();
     const router = httpServiceMock.createRouter();

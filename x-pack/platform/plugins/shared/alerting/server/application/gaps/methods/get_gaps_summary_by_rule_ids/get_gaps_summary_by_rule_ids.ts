@@ -44,7 +44,7 @@ export async function getGapsSummaryByRuleIds(
       throw error;
     }
 
-    const { start, end, ruleIds } = params;
+    const { start, end, ruleIds, excludedReasons } = params;
     const { filter: authorizationFilter } = authorizationTuple;
     const kueryNodeFilter = convertRuleIdsToKueryNode(ruleIds);
     const kueryNodeFilterWithAuth =
@@ -102,6 +102,7 @@ export async function getGapsSummaryByRuleIds(
     const filter = buildGapsFilter({
       start,
       end,
+      excludedReasons,
     });
 
     const aggs = await eventLogClient.aggregateEventsBySavedObjectIds(

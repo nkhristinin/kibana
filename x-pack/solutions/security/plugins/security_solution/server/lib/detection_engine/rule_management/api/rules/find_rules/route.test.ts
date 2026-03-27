@@ -149,6 +149,7 @@ describe('Find rules route', () => {
         filter: 'alert.attributes.name: test',
         sortField: 'enabled',
         sortOrder: 'desc',
+        excludedReasons: expect.anything(),
       });
     });
 

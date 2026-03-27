@@ -5,12 +5,21 @@
  * 2.0.
  */
 import { schema } from '@kbn/config-schema';
+import { gapReasonType } from '../../../../../constants';
 
 export const getGapsSummaryByRuleIdsBodySchema = schema.object(
   {
     end: schema.string(),
     start: schema.string(),
     rule_ids: schema.arrayOf(schema.string(), { maxSize: 100 }),
+    excluded_reasons: schema.maybe(
+      schema.arrayOf(
+        schema.oneOf([
+          schema.literal(gapReasonType.RULE_DISABLED),
+          schema.literal(gapReasonType.RULE_DID_NOT_RUN),
+        ])
+      )
+    ),
   },
   {
     validate({ start, end }) {

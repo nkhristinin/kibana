@@ -115,6 +115,7 @@ describe('Gap Auto Fill Scheduler Task', () => {
     maxBackfills: 100,
     numRetries: 3,
     ruleTypes: [{ type: 'test-rule-type', consumer: 'test-consumer' }],
+    excludedReasons: ['rule_disabled'],
     scheduledTaskId: 'test-task-id',
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
