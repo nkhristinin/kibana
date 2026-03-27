@@ -20,7 +20,6 @@ import moment from 'moment';
 import { useGetRuleIdsWithGaps } from '../../api/hooks/use_get_rule_ids_with_gaps';
 import { useGapAutoFillSchedulerContext } from '../../context/gap_auto_fill_scheduler_context';
 import { GapRangeValue } from '../../constants';
-import { useIsExperimentalFeatureEnabled } from '../../../../common/hooks/use_experimental_features';
 import { useKibana } from '../../../../common/lib/kibana';
 import { SecurityPageName } from '../../../../../common/constants';
 import { useGetSecuritySolutionUrl } from '../../../../common/components/link_to';
@@ -45,7 +44,6 @@ export const RuleGapsCallout = () => {
       spaces.getActiveSpace().then((space) => setSpaceId(space.id));
     }
   }, [spaces]);
-  const storeGapsInEventLogEnabled = useIsExperimentalFeatureEnabled('storeGapsInEventLogEnabled');
   const [isDismissed, setIsDismissed] = useState(false);
 
   const { data } = useGetRuleIdsWithGaps({
@@ -88,7 +86,7 @@ export const RuleGapsCallout = () => {
     setIsDismissed(true);
   }, [data?.latest_gap_timestamp]);
 
-  if (!data || data?.total === 0 || !storeGapsInEventLogEnabled || isDismissed) {
+  if (!data || data?.total === 0 || isDismissed) {
     return null;
   }
 
