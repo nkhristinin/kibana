@@ -5,8 +5,9 @@
  * 2.0.
  */
 
+import { DEFAULT_EXCLUDED_GAP_REASONS } from '../../../../../../../common/constants';
 import type { CreateGapAutoFillSchedulerParams } from '../types';
-import type { RawGapAutoFillSchedulerAttributesV1 } from '../../../../../../saved_objects/schemas/raw_gap_auto_fill_scheduler';
+import type { RawGapAutoFillSchedulerAttributesV2 } from '../../../../../../saved_objects/schemas/raw_gap_auto_fill_scheduler/v2';
 
 export const transformGapAutoFillSchedulerCreateParamToSavedObject = (
   params: CreateGapAutoFillSchedulerParams,
@@ -21,7 +22,7 @@ export const transformGapAutoFillSchedulerCreateParamToSavedObject = (
     updatedAt: string;
     updatedBy: string | null;
   }
-): RawGapAutoFillSchedulerAttributesV1 => {
+): RawGapAutoFillSchedulerAttributesV2 => {
   return {
     name: params.name,
     enabled: params.enabled,
@@ -34,6 +35,7 @@ export const transformGapAutoFillSchedulerCreateParamToSavedObject = (
     ruleTypeConsumerPairs: Array.from(
       new Set(params.ruleTypes.map((rt) => `${rt.type}:${rt.consumer}`))
     ),
+    excludedReasons: params.excludedReasons ?? DEFAULT_EXCLUDED_GAP_REASONS,
     createdBy: createdBy ?? null,
     createdAt,
     updatedAt,

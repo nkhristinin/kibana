@@ -299,3 +299,25 @@ export const RULE_SETTINGS_MODAL_SAVE = i18n.translate(
     defaultMessage: 'Save',
   }
 );
+
+export const GAP_DETECTION_SCOPE_HEADER = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleSettings.gapDetectionScopeHeader',
+  {
+    defaultMessage: 'Gap detection scope',
+  }
+);
+
+export const GAP_DETECTION_SCOPE_DESCRIPTION = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleSettings.gapDetectionScopeDescription',
+  {
+    defaultMessage:
+      'Define what counts as a gap in your rule monitoring and what will be included in automatic gap filling.',
+  }
+);
+
+export const GAP_DETECTION_SCOPE_INCLUDE_DISABLED_LABEL = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleSettings.includeDisabledGapsLabel',
+  {
+    defaultMessage: 'Include gaps created when a rule was disabled.',
+  }
+);

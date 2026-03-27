@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import {
   EuiButton,
   EuiButtonEmpty,
+  EuiCheckbox,
   EuiFormRow,
   EuiModal,
   EuiModalBody,
@@ -22,7 +23,11 @@ import {
   EuiLink,
 } from '@elastic/eui';
 import { FormattedMessage } from '@kbn/i18n-react';
+import { gapReasonType, DEFAULT_EXCLUDED_GAP_REASONS } from '@kbn/alerting-plugin/common';
 import { useAppToasts } from '../../../../common/hooks/use_app_toasts';
+import { useKibana } from '../../../../common/lib/kibana';
+import { useIsExperimentalFeatureEnabled } from '../../../../common/hooks/use_experimental_features';
+import { EXCLUDED_GAP_REASONS_KEY } from '../../../../../common/constants';
 import {
   useCreateGapAutoFillScheduler,
   useUpdateGapAutoFillScheduler,
@@ -44,30 +49,57 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
     isSchedulerLoading: isLoadingGapAutoFillScheduler,
   } = useGapAutoFillSchedulerContext();
 
+  const { services } = useKibana();
+  const gapReasonDetectionEnabled = useIsExperimentalFeatureEnabled('gapReasonDetectionEnabled');
+
   const [isModalOpen, setIsModalOpen] = useState<boolean>(isOpen);
   const createMutation = useCreateGapAutoFillScheduler();
   const updateMutation = useUpdateGapAutoFillScheduler();
   const { addSuccess, addError } = useAppToasts();
 
   const [enabled, setEnabled] = useState<boolean>(false);
+  const [includeDisabledGaps, setIncludeDisabledGaps] = useState<boolean>(false);
   const [isLogsFlyoutOpen, setIsLogsFlyoutOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen && gapAutoFillScheduler) {
       const isEnabled = gapAutoFillScheduler?.enabled ?? false;
       setEnabled(isEnabled);
+
+      const excludedReasons = gapAutoFillScheduler?.excludedReasons ?? DEFAULT_EXCLUDED_GAP_REASONS;
+      setIncludeDisabledGaps(!excludedReasons.includes(gapReasonType.RULE_DISABLED));
     }
   }, [isOpen, gapAutoFillScheduler]);
 
   const isSaving = createMutation.isLoading || updateMutation.isLoading;
 
+  const getExcludedReasons = () => {
+    const currentExcluded = gapAutoFillScheduler?.excludedReasons ?? DEFAULT_EXCLUDED_GAP_REASONS;
+    if (includeDisabledGaps) {
+      return currentExcluded.filter((r) => r !== gapReasonType.RULE_DISABLED);
+    }
+    return currentExcluded.includes(gapReasonType.RULE_DISABLED)
+      ? currentExcluded
+      : [...currentExcluded, gapReasonType.RULE_DISABLED];
+  };
+
   const onSave = async () => {
     try {
+      const newExcludedReasons = getExcludedReasons();
+
       if (!gapAutoFillScheduler) {
-        await createMutation.mutateAsync();
+        await createMutation.mutateAsync({ excludedReasons: newExcludedReasons });
       } else {
-        await updateMutation.mutateAsync({ ...gapAutoFillScheduler, enabled });
+        await updateMutation.mutateAsync({
+          ...gapAutoFillScheduler,
+          enabled,
+          excludedReasons: newExcludedReasons,
+        });
       }
+
+      // Also save to uiSetting for UI/API consumers
+      await services.uiSettings?.set(EXCLUDED_GAP_REASONS_KEY, newExcludedReasons);
+
       addSuccess({
         title: i18n.AUTO_GAP_FILL_TOAST_TITLE,
         text: i18n.AUTO_GAP_FILL_TOAST_TEXT,
@@ -100,12 +132,36 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
           </EuiModalHeader>
           <EuiModalBody>
             <EuiHorizontalRule margin="none" />
-            <EuiSpacer size="m" />
+
+            {gapReasonDetectionEnabled && (
+              <>
+                <EuiSpacer size="m" />
+                <EuiTitle size="xxs">
+                  <h3>{i18n.GAP_DETECTION_SCOPE_HEADER}</h3>
+                </EuiTitle>
+                <EuiSpacer size="s" />
+                <EuiText size="s" color="subdued">
+                  <p>{i18n.GAP_DETECTION_SCOPE_DESCRIPTION}</p>
+                </EuiText>
+                <EuiSpacer size="m" />
+                <EuiFormRow>
+                  <EuiCheckbox
+                    id="include-disabled-gaps-checkbox"
+                    data-test-subj="include-disabled-gaps-checkbox"
+                    label={i18n.GAP_DETECTION_SCOPE_INCLUDE_DISABLED_LABEL}
+                    checked={includeDisabledGaps}
+                    onChange={(e) => setIncludeDisabledGaps(e.target.checked)}
+                    disabled={isFormElementDisabled}
+                  />
+                </EuiFormRow>
+                <EuiSpacer size="l" />
+              </>
+            )}
+
             <EuiTitle size="xxs">
               <h3>{i18n.GAP_AUTO_FILL_HEADER}</h3>
             </EuiTitle>
-            <EuiSpacer size="m" />
-
+            <EuiSpacer size="s" />
             <EuiFormRow>
               <EuiSwitch
                 data-test-subj="rule-settings-enable-switch"
@@ -140,6 +196,7 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
                 />
               </p>
             </EuiText>
+
             <EuiSpacer size="m" />
           </EuiModalBody>
           <EuiModalFooter>

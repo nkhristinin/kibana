@@ -9,10 +9,20 @@ import dateMath from '@kbn/datemath';
 import {
   MAX_SCHEDULE_BACKFILL_LOOKBACK_WINDOW_DAYS,
   gapAutoFillSchedulerLimits,
+  gapReasonType,
 } from '../../../../../constants';
 import { parseDuration } from '../../../../../parse_duration';
 
 const { maxBackfills, numRetries, minScheduleIntervalInMs } = gapAutoFillSchedulerLimits;
+
+const excludedReasonsSchema = schema.maybe(
+  schema.arrayOf(
+    schema.oneOf([
+      schema.literal(gapReasonType.RULE_DISABLED),
+      schema.literal(gapReasonType.RULE_DID_NOT_RUN),
+    ])
+  )
+);
 
 const validateGapAutoFillSchedulerPayload = (
   gapFillRange: string,
@@ -77,6 +87,7 @@ export const gapAutoFillSchedulerBodySchema = schema.object(
         consumer: schema.string(),
       })
     ),
+    excluded_reasons: excludedReasonsSchema,
   },
   {
     validate(payload) {
@@ -106,6 +117,7 @@ export const gapAutoFillSchedulerUpdateBodySchema = schema.object(
         consumer: schema.string(),
       })
     ),
+    excluded_reasons: excludedReasonsSchema,
   },
   {
     validate(payload) {
@@ -135,6 +147,7 @@ export const gapAutoFillSchedulerResponseSchema = schema.object({
   max_backfills: schema.number(),
   num_retries: schema.number(),
   scope: schema.arrayOf(schema.string()),
+  excluded_reasons: schema.maybe(schema.arrayOf(schema.string())),
   created_by: schema.nullable(schema.string()),
   updated_by: schema.nullable(schema.string()),
   created_at: schema.string(),

@@ -299,6 +299,7 @@ export const createGapAutoFillScheduler = async (
         max_backfills: params.maxBackfills,
         num_retries: params.numRetries,
         enabled: params.enabled,
+        excluded_reasons: params.excludedReasons,
       }),
     }
   );
@@ -319,6 +320,7 @@ export const updateGapAutoFillScheduler = async (
         max_backfills: params.maxBackfills,
         num_retries: params.numRetries,
         enabled: params.enabled,
+        excluded_reasons: params.excludedReasons,
       }),
     }
   );

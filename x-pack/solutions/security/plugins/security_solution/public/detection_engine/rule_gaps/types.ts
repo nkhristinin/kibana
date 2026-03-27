@@ -47,6 +47,7 @@ export interface GapAutoFillSchedulerBase {
   maxBackfills: number;
   numRetries: number;
   enabled: boolean;
+  excludedReasons?: string[];
 }
 
 export type GapAutoFillSchedulerResponse = GapAutoFillSchedulerBase & {

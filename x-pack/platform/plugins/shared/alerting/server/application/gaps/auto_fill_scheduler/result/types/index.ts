@@ -20,6 +20,7 @@ export interface GapAutoFillSchedulerResponse {
   scope: string[];
   maxBackfills: number;
   numRetries: number;
+  excludedReasons?: string[];
   createdBy: string | null;
   updatedBy: string | null;
   createdAt: string;

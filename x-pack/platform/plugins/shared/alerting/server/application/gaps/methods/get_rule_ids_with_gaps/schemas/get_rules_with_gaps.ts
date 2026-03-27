@@ -6,7 +6,7 @@
  */
 
 import { schema } from '@kbn/config-schema';
-import { gapFillStatus, gapStatus } from '../../../../../../common';
+import { gapFillStatus, gapStatus, gapReasonType } from '../../../../../../common';
 
 export const getRuleIdsWithGapsParamsSchema = schema.object({
   start: schema.maybe(schema.string()),
@@ -47,6 +47,14 @@ export const getRuleIdsWithGapsParamsSchema = schema.object({
   sortOrder: schema.maybe(schema.oneOf([schema.literal('asc'), schema.literal('desc')])),
   maxRulesToFetch: schema.maybe(schema.number()),
   ruleIds: schema.maybe(schema.arrayOf(schema.string())),
+  excludedReasons: schema.maybe(
+    schema.arrayOf(
+      schema.oneOf([
+        schema.literal(gapReasonType.RULE_DISABLED),
+        schema.literal(gapReasonType.RULE_DID_NOT_RUN),
+      ])
+    )
+  ),
 });
 
 export const gapsSummarySchema = schema.object({

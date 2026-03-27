@@ -16,6 +16,7 @@ export interface GapAutoFillSchedulerSO {
   scope: string[];
   ruleTypes: Array<{ type: string; consumer: string }>;
   ruleTypeConsumerPairs: string[];
+  excludedReasons?: string[];
   createdBy?: string | null;
   updatedBy?: string | null;
   createdAt: string;
