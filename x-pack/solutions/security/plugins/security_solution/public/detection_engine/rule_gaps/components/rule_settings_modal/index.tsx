@@ -62,58 +62,52 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
   const [isLogsFlyoutOpen, setIsLogsFlyoutOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    if (isOpen && gapAutoFillScheduler) {
-      const isEnabled = gapAutoFillScheduler?.enabled ?? false;
-      setEnabled(isEnabled);
+    if (isOpen) {
+      if (gapAutoFillScheduler) {
+        setEnabled(gapAutoFillScheduler.enabled ?? false);
+      }
 
-      const excludedReasons = gapAutoFillScheduler?.excludedReasons ?? DEFAULT_EXCLUDED_GAP_REASONS;
+      const excludedReasons =
+        services.uiSettings?.get<string[]>(EXCLUDED_GAP_REASONS_KEY) ??
+        DEFAULT_EXCLUDED_GAP_REASONS;
       setIncludeDisabledGaps(!excludedReasons.includes(gapReasonType.RULE_DISABLED));
     }
-  }, [isOpen, gapAutoFillScheduler]);
+  }, [isOpen, gapAutoFillScheduler, services.uiSettings]);
 
   const isSaving = createMutation.isLoading || updateMutation.isLoading;
 
-  const getExcludedReasons = () => {
-    const currentExcluded = gapAutoFillScheduler?.excludedReasons ?? DEFAULT_EXCLUDED_GAP_REASONS;
-    if (includeDisabledGaps) {
-      return currentExcluded.filter((r) => r !== gapReasonType.RULE_DISABLED);
-    }
-    return currentExcluded.includes(gapReasonType.RULE_DISABLED)
-      ? currentExcluded
-      : [...currentExcluded, gapReasonType.RULE_DISABLED];
-  };
-
   const onSave = async () => {
     try {
-      const newExcludedReasons = getExcludedReasons();
+      const newExcludedReasons = includeDisabledGaps ? [] : [gapReasonType.RULE_DISABLED];
 
-      if (!gapAutoFillScheduler) {
-        await createMutation.mutateAsync({ excludedReasons: newExcludedReasons });
-      } else {
-        await updateMutation.mutateAsync({
-          ...gapAutoFillScheduler,
-          enabled,
-          excludedReasons: newExcludedReasons,
-        });
+      if (canAccessGapAutoFill) {
+        if (gapAutoFillScheduler) {
+          await updateMutation.mutateAsync({
+            ...gapAutoFillScheduler,
+            enabled,
+            excludedReasons: newExcludedReasons,
+          });
+        } else if (enabled) {
+          await createMutation.mutateAsync({ excludedReasons: newExcludedReasons });
+        }
       }
 
       await services.uiSettings?.set(EXCLUDED_GAP_REASONS_KEY, newExcludedReasons);
 
       addSuccess({
-        title: i18n.AUTO_GAP_FILL_TOAST_TITLE,
-        text: i18n.AUTO_GAP_FILL_TOAST_TEXT,
+        title: i18n.RULE_SETTINGS_TOAST_TITLE,
+        text: i18n.RULE_SETTINGS_TOAST_TEXT,
       });
       onClose();
     } catch (err) {
-      addError(err, { title: i18n.AUTO_GAP_FILL_TOAST_TITLE });
+      addError(err, { title: i18n.RULE_SETTINGS_TOAST_TITLE });
     }
   };
 
-  if (!canAccessGapAutoFill) return null;
+  const isFormElementDisabled =
+    isSaving || (canAccessGapAutoFill && (isLoadingGapAutoFillScheduler || !canEditGapAutoFill));
 
-  const isFormElementDisabled = isSaving || isLoadingGapAutoFillScheduler || !canEditGapAutoFill;
-
-  const isSaveBtnDisabled = (!enabled && !gapAutoFillScheduler) || isFormElementDisabled;
+  if (!canAccessGapAutoFill && !gapReasonDetectionEnabled) return null;
 
   return (
     <div>
@@ -157,46 +151,49 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
               </>
             )}
 
-            <EuiTitle size="xxs">
-              <h3>{i18n.GAP_AUTO_FILL_HEADER}</h3>
-            </EuiTitle>
-            <EuiSpacer size="s" />
-            <EuiFormRow>
-              <EuiSwitch
-                data-test-subj="rule-settings-enable-switch"
-                label={i18n.GAP_AUTO_FILL_TOGGLE_LABEL}
-                checked={enabled}
-                onChange={(e) => setEnabled(e.target.checked)}
-                disabled={isSaving || !canEditGapAutoFill || isLoadingGapAutoFillScheduler}
-              />
-            </EuiFormRow>
-            <EuiSpacer size="m" />
-            <EuiText size="s" color="subdued">
-              <p>
-                <FormattedMessage
-                  id="xpack.securitySolution.detectionEngine.ruleSettings.autoGapFillSchedulerDescriptionDetail"
-                  defaultMessage="The Auto gap fill setting lets you specify whether you want to automatically fill execution gaps that are detected for rules. You can track the status and history of gap fill jobs from the {logsLink}."
-                  values={{
-                    logsLink: (
-                      <EuiLink
-                        onClick={() => {
-                          setIsLogsFlyoutOpen(true);
-                          setIsModalOpen(false);
-                        }}
-                        data-test-subj="gap-fill-scheduler-logs-link"
-                      >
-                        <FormattedMessage
-                          id="xpack.securitySolution.detectionEngine.ruleSettings.autoGapFillSchedulerLogsLinkText"
-                          defaultMessage="Gap fill scheduler"
-                        />
-                      </EuiLink>
-                    ),
-                  }}
-                />
-              </p>
-            </EuiText>
-
-            <EuiSpacer size="m" />
+            {canAccessGapAutoFill && (
+              <>
+                <EuiTitle size="xxs">
+                  <h3>{i18n.GAP_AUTO_FILL_HEADER}</h3>
+                </EuiTitle>
+                <EuiSpacer size="s" />
+                <EuiFormRow>
+                  <EuiSwitch
+                    data-test-subj="rule-settings-enable-switch"
+                    label={i18n.GAP_AUTO_FILL_TOGGLE_LABEL}
+                    checked={enabled}
+                    onChange={(e) => setEnabled(e.target.checked)}
+                    disabled={isFormElementDisabled}
+                  />
+                </EuiFormRow>
+                <EuiSpacer size="m" />
+                <EuiText size="s" color="subdued">
+                  <p>
+                    <FormattedMessage
+                      id="xpack.securitySolution.detectionEngine.ruleSettings.autoGapFillSchedulerDescriptionDetail"
+                      defaultMessage="The Auto gap fill setting lets you specify whether you want to automatically fill execution gaps that are detected for rules. You can track the status and history of gap fill jobs from the {logsLink}."
+                      values={{
+                        logsLink: (
+                          <EuiLink
+                            onClick={() => {
+                              setIsLogsFlyoutOpen(true);
+                              setIsModalOpen(false);
+                            }}
+                            data-test-subj="gap-fill-scheduler-logs-link"
+                          >
+                            <FormattedMessage
+                              id="xpack.securitySolution.detectionEngine.ruleSettings.autoGapFillSchedulerLogsLinkText"
+                              defaultMessage="Gap fill scheduler"
+                            />
+                          </EuiLink>
+                        ),
+                      }}
+                    />
+                  </p>
+                </EuiText>
+                <EuiSpacer size="m" />
+              </>
+            )}
           </EuiModalBody>
           <EuiModalFooter>
             <EuiButtonEmpty onClick={onClose}>{i18n.RULE_SETTINGS_MODAL_CANCEL}</EuiButtonEmpty>
@@ -204,7 +201,7 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
               onClick={onSave}
               fill
               isLoading={isSaving}
-              isDisabled={isSaveBtnDisabled}
+              isDisabled={isFormElementDisabled}
               data-test-subj="rule-settings-save"
             >
               {i18n.RULE_SETTINGS_MODAL_SAVE}

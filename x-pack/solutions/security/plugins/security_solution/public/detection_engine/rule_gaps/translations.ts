@@ -272,17 +272,17 @@ export const RUN_SCHEDULE_LABEL = i18n.translate(
   }
 );
 
-export const AUTO_GAP_FILL_TOAST_TITLE = i18n.translate(
-  'xpack.securitySolution.detectionEngine.ruleSettings.save',
+export const RULE_SETTINGS_TOAST_TITLE = i18n.translate(
+  'xpack.securitySolution.detectionEngine.ruleSettings.saveToastTitle',
   {
-    defaultMessage: 'Auto gap fill',
+    defaultMessage: 'Rule settings',
   }
 );
 
-export const AUTO_GAP_FILL_TOAST_TEXT = i18n.translate(
+export const RULE_SETTINGS_TOAST_TEXT = i18n.translate(
   'xpack.securitySolution.detectionEngine.ruleSettings.saveSuccessToastText',
   {
-    defaultMessage: 'Auto gap fill settings updated successfully',
+    defaultMessage: 'Rule settings updated successfully',
   }
 );
 
