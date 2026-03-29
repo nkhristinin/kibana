@@ -50,7 +50,7 @@ export const useGetRuleIdsWithGaps = (
       hasUnfilledIntervals,
       hasInProgressIntervals,
       hasFilledIntervals,
-      excludedReasons,
+      ...(excludedReasons ?? []),
     ],
     async ({ signal }) => {
       const { start, end } = getGapRange(gapRange);
