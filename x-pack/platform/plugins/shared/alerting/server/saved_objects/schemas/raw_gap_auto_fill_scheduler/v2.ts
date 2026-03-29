@@ -8,9 +8,17 @@
 import { schema } from '@kbn/config-schema';
 import type { TypeOf } from '@kbn/config-schema';
 import { rawGapAutoFillSchedulerSchemaV1 } from '.';
+import { gapReasonType } from '../../../../common/constants';
 
 export const rawGapAutoFillSchedulerSchemaV2 = rawGapAutoFillSchedulerSchemaV1.extends({
-  excludedReasons: schema.maybe(schema.arrayOf(schema.string())),
+  excludedReasons: schema.maybe(
+    schema.arrayOf(
+      schema.oneOf([
+        schema.literal(gapReasonType.RULE_DISABLED),
+        schema.literal(gapReasonType.RULE_DID_NOT_RUN),
+      ])
+    )
+  ),
 });
 
 export type RawGapAutoFillSchedulerAttributesV2 = TypeOf<typeof rawGapAutoFillSchedulerSchemaV2>;

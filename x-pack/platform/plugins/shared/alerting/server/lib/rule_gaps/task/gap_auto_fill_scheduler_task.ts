@@ -22,6 +22,7 @@ import {
   MAX_SCHEDULE_BACKFILL_LOOKBACK_WINDOW_MS,
   DEFAULT_EXCLUDED_GAP_REASONS,
 } from '../../../../common/constants';
+import type { GapReasonType } from '../../../../common/constants/gap_reason';
 import type { createGapAutoFillSchedulerEventLogger } from './gap_auto_fill_scheduler_event_log';
 import {
   GAP_AUTO_FILL_SCHEDULER_TASK_TYPE,
@@ -100,7 +101,7 @@ export async function processRuleBatches({
   endISO: string;
   taskInstanceId: string;
   numRetries: number;
-  excludedReasons?: string[];
+  excludedReasons?: GapReasonType[];
 }): Promise<ProcessRuleBatchesResult> {
   let aggregatedByRule = new Map<string, AggregatedByRuleEntry>();
 
@@ -195,7 +196,7 @@ export async function processGapsForRules({
   taskInstanceId: string;
   toProcessRuleIds: string[];
   numRetries: number;
-  excludedReasons?: string[];
+  excludedReasons?: GapReasonType[];
 }): Promise<ProcessGapsForRulesResult> {
   let aggregated = new Map(aggregatedByRule);
 
@@ -401,7 +402,7 @@ export function registerGapAutoFillSchedulerTask({
               schedule: { interval: string };
               maxBackfills: number;
               ruleTypes: Array<{ type: string; consumer: string }>;
-              excludedReasons?: string[];
+              excludedReasons?: GapReasonType[];
             };
             let logEvent: ReturnType<typeof createGapAutoFillSchedulerEventLogger>;
             try {

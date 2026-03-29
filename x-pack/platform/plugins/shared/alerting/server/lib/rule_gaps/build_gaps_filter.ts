@@ -5,6 +5,8 @@
  * 2.0.
  */
 
+import type { GapReasonType } from '../../../common/constants/gap_reason';
+
 const FAILED_AUTO_FILL_ATTEMPTS_FIELD = `kibana.alert.rule.gap.failed_auto_fill_attempts`;
 const GAP_REASON_TYPE_FIELD = `kibana.alert.rule.gap.reason.type`;
 
@@ -35,7 +37,7 @@ export const buildGapsFilter = ({
   hasFilledIntervals?: boolean;
   updatedBefore?: string;
   failedAutoFillAttemptsLessThan?: number;
-  excludedReasons?: string[];
+  excludedReasons?: GapReasonType[];
 }) => {
   const baseFilter =
     'event.action: gap AND event.provider: alerting AND not kibana.alert.rule.gap.deleted:true';
