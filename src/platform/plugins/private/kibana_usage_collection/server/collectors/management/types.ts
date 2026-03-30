@@ -15,6 +15,7 @@ export interface UsageStats {
   'securitySolution:defaultThreatIndex': string;
   'securitySolution:alertTags': string;
   'securitySolution:alertCloseReasons': string;
+  'securitySolution:excludedGapReasons': string[];
   'securitySolution:newsFeedUrl': string;
   'xpackReporting:customPdfLogo': string;
   'notifications:banner': string;
