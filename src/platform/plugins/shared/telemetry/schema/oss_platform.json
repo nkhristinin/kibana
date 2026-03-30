@@ -10613,6 +10613,15 @@
             "description": "Default value of the setting was changed."
           }
         },
+        "securitySolution:excludedGapReasons": {
+          "type": "array",
+          "items": {
+            "type": "keyword",
+            "_meta": {
+              "description": "Non-default value of setting."
+            }
+          }
+        },
         "securitySolution:newsFeedUrl": {
           "type": "keyword",
           "_meta": {
