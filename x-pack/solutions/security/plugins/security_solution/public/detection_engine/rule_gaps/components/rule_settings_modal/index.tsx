@@ -51,6 +51,7 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
 
   const { services } = useKibana();
   const gapReasonDetectionEnabled = useIsExperimentalFeatureEnabled('gapReasonDetectionEnabled');
+  const canSaveAdvancedSettings = services.application.capabilities.advancedSettings?.save === true;
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(isOpen);
   const createMutation = useCreateGapAutoFillScheduler();
@@ -80,7 +81,7 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
     try {
       const newExcludedReasons = includeDisabledGaps ? [] : [gapReasonType.RULE_DISABLED];
 
-      if (canAccessGapAutoFill) {
+      if (canAccessGapAutoFill && canEditGapAutoFill) {
         if (gapAutoFillScheduler) {
           await updateMutation.mutateAsync({
             ...gapAutoFillScheduler,
@@ -92,7 +93,9 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
         }
       }
 
-      await services.uiSettings?.set(EXCLUDED_GAP_REASONS_KEY, newExcludedReasons);
+      if (canSaveAdvancedSettings) {
+        await services.uiSettings?.set(EXCLUDED_GAP_REASONS_KEY, newExcludedReasons);
+      }
 
       addSuccess({
         title: i18n.RULE_SETTINGS_TOAST_TITLE,
@@ -106,6 +109,10 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
 
   const isFormElementDisabled =
     isSaving || (canAccessGapAutoFill && (isLoadingGapAutoFillScheduler || !canEditGapAutoFill));
+  const canSaveAutoFill =
+    canAccessGapAutoFill && canEditGapAutoFill && !isLoadingGapAutoFillScheduler;
+  const canSaveGapScope = gapReasonDetectionEnabled && canSaveAdvancedSettings;
+  const isSaveDisabled = isSaving || (!canSaveAutoFill && !canSaveGapScope);
 
   if (!canAccessGapAutoFill && !gapReasonDetectionEnabled) return null;
 
@@ -144,7 +151,7 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
                     label={i18n.GAP_DETECTION_SCOPE_INCLUDE_DISABLED_LABEL}
                     checked={includeDisabledGaps}
                     onChange={(e) => setIncludeDisabledGaps(e.target.checked)}
-                    disabled={isFormElementDisabled}
+                    disabled={isSaving || !canSaveAdvancedSettings}
                   />
                 </EuiFormRow>
                 <EuiSpacer size="l" />
@@ -201,7 +208,7 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
               onClick={onSave}
               fill
               isLoading={isSaving}
-              isDisabled={isFormElementDisabled}
+              isDisabled={isSaveDisabled}
               data-test-subj="rule-settings-save"
             >
               {i18n.RULE_SETTINGS_MODAL_SAVE}
