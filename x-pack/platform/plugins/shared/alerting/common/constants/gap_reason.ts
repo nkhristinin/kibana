@@ -22,4 +22,4 @@ export interface GapReason {
 }
 
 /** Default gap reasons to exclude from gap monitoring and auto-fill when no explicit setting is provided */
-export const DEFAULT_EXCLUDED_GAP_REASONS: GapReasonType[] = [gapReasonType.RULE_DISABLED];
+export const DEFAULT_EXCLUDED_GAP_REASONS = [gapReasonType.RULE_DISABLED] satisfies GapReasonType[];
