@@ -17,7 +17,10 @@ export const getGapsSummaryByRuleIdsBodySchema = schema.object(
         schema.oneOf([
           schema.literal(gapReasonType.RULE_DISABLED),
           schema.literal(gapReasonType.RULE_DID_NOT_RUN),
-        ])
+        ]),
+        {
+          maxSize: Object.values(gapReasonType).length,
+        }
       )
     ),
     gap_auto_fill_scheduler_id: schema.maybe(schema.string()),

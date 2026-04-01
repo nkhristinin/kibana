@@ -53,7 +53,8 @@ export const getRuleIdsWithGapsParamsSchema = schema.object({
       schema.oneOf([
         schema.literal(gapReasonType.RULE_DISABLED),
         schema.literal(gapReasonType.RULE_DID_NOT_RUN),
-      ])
+      ]),
+      { maxSize: Object.values(gapReasonType).length }
     )
   ),
   schedulerId: schema.maybe(schema.string()),

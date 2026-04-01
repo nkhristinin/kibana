@@ -16,7 +16,8 @@ export const rawGapAutoFillSchedulerSchemaV2 = rawGapAutoFillSchedulerSchemaV1.e
       schema.oneOf([
         schema.literal(gapReasonType.RULE_DISABLED),
         schema.literal(gapReasonType.RULE_DID_NOT_RUN),
-      ])
+      ]),
+      { maxSize: Object.values(gapReasonType).length }
     )
   ),
 });

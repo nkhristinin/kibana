@@ -506,7 +506,8 @@ export const initUiSettings = (
         schema.oneOf([
           schema.literal(gapReasonType.RULE_DISABLED),
           schema.literal(gapReasonType.RULE_DID_NOT_RUN),
-        ])
+        ]),
+        { maxSize: Object.values(gapReasonType).length }
       ),
     },
     ...getDefaultValueReportSettings(),
