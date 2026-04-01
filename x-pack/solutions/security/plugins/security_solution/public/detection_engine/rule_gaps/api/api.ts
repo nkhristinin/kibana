@@ -28,7 +28,12 @@ import type {
 } from '@kbn/alerting-plugin/common/routes/gaps/apis/gap_auto_fill_scheduler';
 import dateMath from '@kbn/datemath';
 import { KibanaServices } from '../../../common/lib/kibana';
-import type { GapStatus, ScheduleBackfillProps, GapAutoFillSchedulerBase } from '../types';
+import type {
+  GapReasonType,
+  GapStatus,
+  ScheduleBackfillProps,
+  GapAutoFillSchedulerBase,
+} from '../types';
 
 /**
  * Schedule rules run over a specified time range
@@ -219,6 +224,7 @@ export const findGapsForRule = async ({
   start,
   end,
   statuses,
+  excludedReasons,
 }: {
   ruleId: string;
   page: number;
@@ -226,6 +232,7 @@ export const findGapsForRule = async ({
   start: string;
   end: string;
   statuses: GapStatus[];
+  excludedReasons?: GapReasonType[];
   signal?: AbortSignal;
   sortField?: string;
   sortOrder?: string;
@@ -246,6 +253,7 @@ export const findGapsForRule = async ({
         start: startDate?.utc().toISOString(),
         end: endDate?.utc().toISOString(),
         statuses,
+        ...(excludedReasons?.length ? { excluded_reasons: excludedReasons } : {}),
       }),
       signal,
     }
