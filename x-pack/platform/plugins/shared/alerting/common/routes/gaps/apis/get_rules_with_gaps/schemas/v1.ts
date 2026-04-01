@@ -30,6 +30,7 @@ export const getRuleIdsWithGapBodySchema = schema.object(
           schema.literal(gapFillStatus.UNFILLED),
           schema.literal(gapFillStatus.IN_PROGRESS),
           schema.literal(gapFillStatus.FILLED),
+          schema.literal(gapFillStatus.ERROR),
         ])
       )
     ),
@@ -45,6 +46,7 @@ export const getRuleIdsWithGapBodySchema = schema.object(
         ])
       )
     ),
+    gap_auto_fill_scheduler_id: schema.maybe(schema.string()),
   },
   {
     validate({ start, end }) {
@@ -69,11 +71,13 @@ export const gapsSummarySchema = schema.object({
   total_unfilled_duration_ms: schema.number(),
   total_in_progress_duration_ms: schema.number(),
   total_filled_duration_ms: schema.number(),
+  total_error_duration_ms: schema.number(),
   total_duration_ms: schema.number(),
   rules_by_gap_fill_status: schema.object({
     unfilled: schema.number(),
     in_progress: schema.number(),
     filled: schema.number(),
+    error: schema.number(),
   }),
 });
 

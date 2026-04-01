@@ -20,6 +20,7 @@ export const getGapsSummaryByRuleIdsBodySchema = schema.object(
         ])
       )
     ),
+    gap_auto_fill_scheduler_id: schema.maybe(schema.string()),
   },
   {
     validate({ start, end }) {

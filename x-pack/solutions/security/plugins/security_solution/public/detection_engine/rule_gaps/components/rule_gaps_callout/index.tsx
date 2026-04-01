@@ -18,6 +18,7 @@ import { FormattedMessage } from '@kbn/i18n-react';
 import { i18n } from '@kbn/i18n';
 import moment from 'moment';
 import { useGetRuleIdsWithGaps } from '../../api/hooks/use_get_rule_ids_with_gaps';
+import { useGapAutoFillSchedulerContext } from '../../context/gap_auto_fill_scheduler_context';
 import { GapRangeValue } from '../../constants';
 import { useKibana } from '../../../../common/lib/kibana';
 import { SecurityPageName, EXCLUDED_GAP_REASONS_KEY } from '../../../../../common/constants';
@@ -35,6 +36,8 @@ export const RuleGapsCallout = () => {
   const { docLinks, spaces, uiSettings } = useKibana().services;
   const getSecuritySolutionUrl = useGetSecuritySolutionUrl();
   const excludedReasons = uiSettings?.get<string[]>(EXCLUDED_GAP_REASONS_KEY);
+  const { scheduler } = useGapAutoFillSchedulerContext();
+  const activeSchedulerId = scheduler?.enabled ? scheduler.id : undefined;
 
   const [spaceId, setSpaceId] = useState('');
   useEffect(() => {
@@ -48,6 +51,7 @@ export const RuleGapsCallout = () => {
     gapRange: GapRangeValue.LAST_24_H,
     gapFillStatuses: [gapFillStatus.UNFILLED],
     excludedReasons,
+    schedulerId: activeSchedulerId,
   });
 
   useEffect(() => {

@@ -21,6 +21,7 @@ import {
   DEFAULT_RULES_TABLE_REFRESH_SETTING,
   EXCLUDED_GAP_REASONS_KEY,
 } from '../../../../../../common/constants';
+import { useGapAutoFillSchedulerContext } from '../../../../rule_gaps/context/gap_auto_fill_scheduler_context';
 import { invariant } from '../../../../../../common/utils/invariant';
 import { URL_PARAM_KEY } from '../../../../../common/hooks/use_url_state';
 import { useKibana, useUiSetting$ } from '../../../../../common/lib/kibana';
@@ -198,6 +199,8 @@ interface RulesTableContextProviderProps {
 }
 
 export const RulesTableContextProvider = ({ children }: RulesTableContextProviderProps) => {
+  const { scheduler } = useGapAutoFillSchedulerContext();
+  const activeSchedulerId = scheduler?.enabled ? scheduler.id : undefined;
   const [autoRefreshSettings] = useUiSetting$<{
     on: boolean;
     value: number;
@@ -310,6 +313,7 @@ export const RulesTableContextProvider = ({ children }: RulesTableContextProvide
       filterOptions,
       sortingOptions,
       pagination,
+      schedulerId: activeSchedulerId,
     },
     {
       // We don't need refreshes on windows focus and reconnects if auto-refresh if off
@@ -337,6 +341,7 @@ export const RulesTableContextProvider = ({ children }: RulesTableContextProvide
       ruleIds: rules.map((x) => x.id),
       gapRange: defaultRangeValue,
       excludedReasons,
+      schedulerId: activeSchedulerId,
     },
     {
       enabled: rules.length > 0,

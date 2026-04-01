@@ -18,4 +18,5 @@ export const transformRequest = (request: GetRuleIdsWithGapBodyV1): GetRuleIdsWi
   hasFilledIntervals: request.has_filled_intervals,
   sortOrder: request.sort_order,
   excludedReasons: request.excluded_reasons,
+  schedulerId: request.gap_auto_fill_scheduler_id,
 });

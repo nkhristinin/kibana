@@ -84,6 +84,7 @@ export const findRulesRoute = (router: SecuritySolutionPluginRouter, logger: Log
               sortField: query.sort_field,
               sortOrder: query.sort_order,
               excludedReasons,
+              schedulerId: query.gap_auto_fill_scheduler_id,
             });
 
             if (truncated) {

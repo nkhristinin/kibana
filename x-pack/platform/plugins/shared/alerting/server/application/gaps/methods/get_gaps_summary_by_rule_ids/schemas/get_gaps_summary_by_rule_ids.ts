@@ -20,6 +20,7 @@ export const getGapsSummaryByRuleIdsParamsSchema = schema.object({
       ])
     )
   ),
+  schedulerId: schema.maybe(schema.string()),
 });
 
 export const getGapsSummaryByRuleIdsResponseSchema = schema.object({
