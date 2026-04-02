@@ -49,7 +49,7 @@ export const stackManagementSchema: MakeSchemaFrom<UsageStats> = {
     type: 'array',
     items: {
       type: 'keyword',
-      _meta: { description: 'Non-default value of setting.' },
+      _meta: { description: 'Array of excluded gap reasons.' },
     },
   },
   'securitySolution:newsFeedUrl': {
