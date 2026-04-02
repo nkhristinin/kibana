@@ -207,7 +207,7 @@ export const RulesTableContextProvider = ({ children }: RulesTableContextProvide
     idleTimeout: number;
   }>(DEFAULT_RULES_TABLE_REFRESH_SETTING);
   const { sessionStorage, uiSettings } = useKibana().services;
-  const excludedReasons = uiSettings?.get<string[]>(EXCLUDED_GAP_REASONS_KEY);
+  const excludedReasons = uiSettings.get<string[]>(EXCLUDED_GAP_REASONS_KEY);
   const {
     filter: savedFilter,
     sorting: savedSorting,

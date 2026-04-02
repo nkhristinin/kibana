@@ -8,7 +8,6 @@
 import styled from '@emotion/styled';
 import React, { useCallback, useState } from 'react';
 import moment from 'moment';
-import { DEFAULT_EXCLUDED_GAP_REASONS } from '@kbn/alerting-plugin/common';
 import type {
   CriteriaWithPagination,
   EuiBasicTableColumn,
@@ -215,8 +214,7 @@ export const RuleGaps = ({ ruleId, enabled }: { ruleId: string; enabled: boolean
     end: 'now',
   });
   const { timelines, uiSettings } = useKibana().services;
-  const excludedReasonsFromAdvancedSettings =
-    uiSettings?.get<string[]>(EXCLUDED_GAP_REASONS_KEY) ?? DEFAULT_EXCLUDED_GAP_REASONS;
+  const excludedReasonsFromAdvancedSettings = uiSettings.get<string[]>(EXCLUDED_GAP_REASONS_KEY);
   const canEditRules = useUserPrivileges().rulesPrivileges.rules.edit;
   const gapReasonDetectionEnabled = useIsExperimentalFeatureEnabled('gapReasonDetectionEnabled');
   const [refreshInterval, setRefreshInterval] = useState(1000);

@@ -47,7 +47,7 @@ const transformGapAutoFillSchedulerResponseBody = (
     updatedBy: response.updated_by,
     createdAt: response.created_at,
     updatedAt: response.updated_at,
-    excludedReasons: response.excluded_reasons ?? DEFAULT_EXCLUDED_GAP_REASONS,
+    excludedReasons: response.excluded_reasons,
   };
 };
 

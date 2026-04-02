@@ -53,7 +53,7 @@ interface RuleGapSummaryChartProps {
 export const RuleGapSummaryChart: React.FC<RuleGapSummaryChartProps> = ({ enabled = true }) => {
   const { euiTheme } = useEuiTheme();
   const { services } = useKibana();
-  const excludedReasons = services.uiSettings?.get<string[]>(EXCLUDED_GAP_REASONS_KEY);
+  const excludedReasons = services.uiSettings.get<string[]>(EXCLUDED_GAP_REASONS_KEY);
   const { scheduler } = useGapAutoFillSchedulerContext();
   const activeSchedulerId = scheduler?.enabled ? scheduler.id : undefined;
 

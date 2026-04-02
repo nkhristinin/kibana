@@ -43,7 +43,7 @@ const BulkFillRuleGapsModalComponent = ({
   rulesCount,
 }: BulkFillRuleGapsModalProps) => {
   const { services } = useKibana();
-  const excludedReasons = services.uiSettings?.get<string[]>(EXCLUDED_GAP_REASONS_KEY);
+  const excludedReasons = services.uiSettings.get<string[]>(EXCLUDED_GAP_REASONS_KEY);
   const hasExcludedDisabledGaps = excludedReasons?.includes(gapReasonType.RULE_DISABLED);
 
   const callouts = useMemo(() => {
@@ -69,7 +69,7 @@ const BulkFillRuleGapsModalComponent = ({
         <EuiCallOut
           announceOnMount
           size="s"
-          iconType="iInCircle"
+          iconType="info"
           title={i18n.BULK_FILL_RULE_GAPS_EXCLUDED_REASONS}
         />
       );
