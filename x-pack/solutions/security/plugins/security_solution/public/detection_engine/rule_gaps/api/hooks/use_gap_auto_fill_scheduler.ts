@@ -8,7 +8,6 @@ import { useQuery, useMutation, useQueryClient } from '@kbn/react-query';
 import type { GapAutoFillSchedulerResponseBodyV1 } from '@kbn/alerting-plugin/common/routes/gaps/apis/gap_auto_fill_scheduler';
 import { SECURITY_SOLUTION_RULE_TYPE_IDS } from '@kbn/securitysolution-rules';
 import { SERVER_APP_ID } from '@kbn/security-solution-features/constants';
-import { DEFAULT_EXCLUDED_GAP_REASONS } from '@kbn/alerting-plugin/common';
 import { useSpaceId } from '../../../../common/hooks/use_space_id';
 import {
   createGapAutoFillScheduler,
@@ -91,7 +90,7 @@ export const useCreateGapAutoFillScheduler = () => {
         maxBackfills: DEFAULT_GAP_AUTO_FILL_SCHEDULER_MAX_BACKFILLS,
         numRetries: DEFAULT_GAP_AUTO_FILL_SCHEDULER_NUM_RETRIES,
         scope: DEFAULT_GAP_AUTO_FILL_SCHEDULER_SCOPE,
-        excludedReasons: params?.excludedReasons ?? DEFAULT_EXCLUDED_GAP_REASONS,
+        excludedReasons: params?.excludedReasons,
       };
       const response = await createGapAutoFillScheduler(fullBody);
       return transformGapAutoFillSchedulerResponseBody(response);
