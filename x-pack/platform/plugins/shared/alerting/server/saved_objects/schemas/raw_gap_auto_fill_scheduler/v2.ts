@@ -5,21 +5,12 @@
  * 2.0.
  */
 
-import { schema } from '@kbn/config-schema';
 import type { TypeOf } from '@kbn/config-schema';
 import { rawGapAutoFillSchedulerSchemaV1 } from '.';
-import { gapReasonType } from '../../../../common/constants';
+import { optionalExcludedGapReasonsSchema } from '../../../../common/schemas';
 
 export const rawGapAutoFillSchedulerSchemaV2 = rawGapAutoFillSchedulerSchemaV1.extends({
-  excludedReasons: schema.maybe(
-    schema.arrayOf(
-      schema.oneOf([
-        schema.literal(gapReasonType.RULE_DISABLED),
-        schema.literal(gapReasonType.RULE_DID_NOT_RUN),
-      ]),
-      { maxSize: Object.values(gapReasonType).length }
-    )
-  ),
+  excludedReasons: optionalExcludedGapReasonsSchema,
 });
 
 export type RawGapAutoFillSchedulerAttributesV2 = TypeOf<typeof rawGapAutoFillSchedulerSchemaV2>;

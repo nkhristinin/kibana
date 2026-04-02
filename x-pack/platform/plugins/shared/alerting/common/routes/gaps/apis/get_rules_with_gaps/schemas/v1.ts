@@ -5,7 +5,8 @@
  * 2.0.
  */
 import { schema } from '@kbn/config-schema';
-import { gapFillStatus, gapStatus, gapReasonType } from '../../../../../constants';
+import { gapFillStatus, gapStatus } from '../../../../../constants';
+import { optionalExcludedGapReasonsSchema } from '../../../../../schemas';
 
 export const getRuleIdsWithGapBodySchema = schema.object(
   {
@@ -38,17 +39,7 @@ export const getRuleIdsWithGapBodySchema = schema.object(
     has_in_progress_intervals: schema.maybe(schema.boolean()),
     has_filled_intervals: schema.maybe(schema.boolean()),
     sort_order: schema.maybe(schema.oneOf([schema.literal('asc'), schema.literal('desc')])),
-    excluded_reasons: schema.maybe(
-      schema.arrayOf(
-        schema.oneOf([
-          schema.literal(gapReasonType.RULE_DISABLED),
-          schema.literal(gapReasonType.RULE_DID_NOT_RUN),
-        ]),
-        {
-          maxSize: Object.values(gapReasonType).length,
-        }
-      )
-    ),
+    excluded_reasons: optionalExcludedGapReasonsSchema,
     gap_auto_fill_scheduler_id: schema.maybe(schema.string()),
   },
   {

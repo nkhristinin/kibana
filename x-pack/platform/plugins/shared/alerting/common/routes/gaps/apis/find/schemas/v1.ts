@@ -6,7 +6,7 @@
  */
 import { schema } from '@kbn/config-schema';
 import { gapsResponseSchemaV1 } from '../../../response';
-import { gapReasonType } from '../../../../../constants';
+import { optionalExcludedGapReasonsSchema } from '../../../../../schemas';
 
 export const findGapsBodySchema = schema.object(
   {
@@ -32,17 +32,7 @@ export const findGapsBodySchema = schema.object(
         ])
       )
     ),
-    excluded_reasons: schema.maybe(
-      schema.arrayOf(
-        schema.oneOf([
-          schema.literal(gapReasonType.RULE_DISABLED),
-          schema.literal(gapReasonType.RULE_DID_NOT_RUN),
-        ]),
-        {
-          maxSize: Object.values(gapReasonType).length,
-        }
-      )
-    ),
+    excluded_reasons: optionalExcludedGapReasonsSchema,
   },
   {
     validate({ start, end }) {
