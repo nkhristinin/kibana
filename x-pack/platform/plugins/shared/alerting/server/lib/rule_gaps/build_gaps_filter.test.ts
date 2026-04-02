@@ -6,6 +6,7 @@
  */
 import { buildGapsFilter } from './build_gaps_filter';
 import { gapStatus } from '../../../common/constants/gap_status';
+import { gapReasonType } from '../../../common/constants/gap_reason';
 
 const BASE_GAPS_FILTER =
   'event.action: gap AND event.provider: alerting AND not kibana.alert.rule.gap.deleted:true';
@@ -170,15 +171,20 @@ describe('buildGapsFilter', () => {
 
   describe('excludedReasons filter', () => {
     it('should build filter excluding a single reason', () => {
-      expect(buildGapsFilter({ excludedReasons: ['rule_disabled'] })).toBe(
-        `${BASE_GAPS_FILTER} AND ` + 'NOT (kibana.alert.rule.gap.reason.type: "rule_disabled")'
+      expect(buildGapsFilter({ excludedReasons: [gapReasonType.RULE_DISABLED] })).toBe(
+        `${BASE_GAPS_FILTER} AND ` +
+          `NOT (kibana.alert.rule.gap.reason.type: "${gapReasonType.RULE_DISABLED}")`
       );
     });
 
     it('should build filter excluding multiple reasons', () => {
-      expect(buildGapsFilter({ excludedReasons: ['rule_disabled', 'rule_did_not_run'] })).toBe(
+      expect(
+        buildGapsFilter({
+          excludedReasons: [gapReasonType.RULE_DISABLED, gapReasonType.RULE_DID_NOT_RUN],
+        })
+      ).toBe(
         `${BASE_GAPS_FILTER} AND ` +
-          'NOT (kibana.alert.rule.gap.reason.type: "rule_disabled" OR kibana.alert.rule.gap.reason.type: "rule_did_not_run")'
+          `NOT (kibana.alert.rule.gap.reason.type: "${gapReasonType.RULE_DISABLED}" OR kibana.alert.rule.gap.reason.type: "${gapReasonType.RULE_DID_NOT_RUN}")`
       );
     });
 
@@ -194,12 +200,12 @@ describe('buildGapsFilter', () => {
       expect(
         buildGapsFilter({
           statuses: [gapStatus.UNFILLED],
-          excludedReasons: ['rule_disabled'],
+          excludedReasons: [gapReasonType.RULE_DISABLED],
         })
       ).toBe(
         `${BASE_GAPS_FILTER} AND ` +
           '(kibana.alert.rule.gap.status : unfilled) AND ' +
-          'NOT (kibana.alert.rule.gap.reason.type: "rule_disabled")'
+          `NOT (kibana.alert.rule.gap.reason.type: "${gapReasonType.RULE_DISABLED}")`
       );
     });
   });

@@ -10,6 +10,7 @@ import { licenseStateMock } from '../../../../lib/license_state.mock';
 import { verifyApiAccess } from '../../../../lib/license_api_access';
 import { mockHandlerArguments } from '../../../_mock_handler_arguments';
 import { rulesClientMock } from '../../../../rules_client.mock';
+import { gapReasonType } from '../../../../../common/constants/gap_reason';
 import { getRuleIdsWithGapsRoute } from './get_rule_ids_with_gaps_route';
 
 const rulesClient = rulesClientMock.create();
@@ -131,13 +132,14 @@ describe('getRuleIdsWithGapsRoute', () => {
   test('should pass excluded_reasons through to rulesClient', async () => {
     const licenseState = licenseStateMock.create();
     const router = httpServiceMock.createRouter();
+    const excludedReasons = [gapReasonType.RULE_DISABLED];
 
     getRuleIdsWithGapsRoute(router, licenseState);
 
     rulesClient.getRuleIdsWithGaps.mockResolvedValueOnce(mockResult);
     const bodyWithExcludedReasons = {
       ...mockBody,
-      excluded_reasons: ['rule_disabled'],
+      excluded_reasons: excludedReasons,
     };
     const [, handler] = router.post.mock.calls[0];
     const [context, req, res] = mockHandlerArguments(
@@ -149,7 +151,7 @@ describe('getRuleIdsWithGapsRoute', () => {
 
     expect(rulesClient.getRuleIdsWithGaps).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        excludedReasons: ['rule_disabled'],
+        excludedReasons,
       })
     );
   });
