@@ -70,10 +70,7 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
       setEnabled(gapAutoFillScheduler.enabled ?? false);
     }
 
-    const excludedReasons = services.uiSettings.get<string[]>(
-      EXCLUDED_GAP_REASONS_KEY,
-      DEFAULT_EXCLUDED_GAP_REASONS
-    );
+    const excludedReasons = services.uiSettings.get<string[]>(EXCLUDED_GAP_REASONS_KEY);
     setIncludeDisabledGaps(!excludedReasons.includes(gapReasonType.RULE_DISABLED));
   }, [isOpen, gapAutoFillScheduler, services.uiSettings]);
 
