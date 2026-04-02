@@ -23,7 +23,7 @@ import {
   EuiLink,
 } from '@elastic/eui';
 import { FormattedMessage } from '@kbn/i18n-react';
-import { gapReasonType, DEFAULT_EXCLUDED_GAP_REASONS } from '@kbn/alerting-plugin/common';
+import { gapReasonType } from '@kbn/alerting-plugin/common';
 import { useAppToasts } from '../../../../common/hooks/use_app_toasts';
 import { useKibana } from '../../../../common/lib/kibana';
 import { useIsExperimentalFeatureEnabled } from '../../../../common/hooks/use_experimental_features';
