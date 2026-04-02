@@ -63,16 +63,16 @@ export const RuleSettingsModal: React.FC<RuleSettingsModalProps> = ({ isOpen, on
   const [isLogsFlyoutOpen, setIsLogsFlyoutOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    if (isOpen) {
-      if (gapAutoFillScheduler) {
-        setEnabled(gapAutoFillScheduler.enabled ?? false);
-      }
-
-      const excludedReasons =
-        services.uiSettings?.get<string[]>(EXCLUDED_GAP_REASONS_KEY) ??
-        DEFAULT_EXCLUDED_GAP_REASONS;
-      setIncludeDisabledGaps(!excludedReasons.includes(gapReasonType.RULE_DISABLED));
+    if (!isOpen) {
+      return;
     }
+    if (gapAutoFillScheduler) {
+      setEnabled(gapAutoFillScheduler.enabled ?? false);
+    }
+
+    const excludedReasons =
+      services.uiSettings?.get<string[]>(EXCLUDED_GAP_REASONS_KEY) ?? DEFAULT_EXCLUDED_GAP_REASONS;
+    setIncludeDisabledGaps(!excludedReasons.includes(gapReasonType.RULE_DISABLED));
   }, [isOpen, gapAutoFillScheduler, services.uiSettings]);
 
   const isSaving = createMutation.isLoading || updateMutation.isLoading;
