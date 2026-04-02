@@ -10618,7 +10618,7 @@
           "items": {
             "type": "keyword",
             "_meta": {
-              "description": "Non-default value of setting."
+              "description": "Array of excluded gap reasons."
             }
           }
         },
