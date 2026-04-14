@@ -77,6 +77,7 @@ import { AIValueReportLocatorDefinition } from '../common/locators/ai_value_repo
 import { registerAttachmentUiDefinitions } from './agent_builder/attachment_types';
 import { registerRuleAttachment } from './agent_builder/attachment_types/rule_attachment';
 import { registerWorkflowTriggerDefinitions } from './workflows/triggers';
+import { registerWorkflowStepDefinitions } from './workflows/steps';
 
 export class Plugin implements IPlugin<PluginSetup, PluginStart, SetupPlugins, StartPlugins> {
   private config: SecuritySolutionUiConfigType;
@@ -123,6 +124,7 @@ export class Plugin implements IPlugin<PluginSetup, PluginStart, SetupPlugins, S
 
     if (plugins.workflowsExtensions) {
       registerWorkflowTriggerDefinitions(plugins.workflowsExtensions);
+      registerWorkflowStepDefinitions(plugins.workflowsExtensions);
     }
 
     const { home, usageCollection, management, cases, share } = plugins;
