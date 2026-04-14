@@ -57,6 +57,24 @@ const ruleResponseToCreateProps = (rule: RuleResponse): Record<string, unknown> 
   return createProps;
 };
 
+const parseIntervalToMinutes = (intervalStr: string): number => {
+  const match = intervalStr.match(/^(\d+)(s|m|h|d)$/);
+  if (!match) return 5;
+  const value = Number(match[1]);
+  switch (match[2]) {
+    case 's':
+      return value / 60;
+    case 'm':
+      return value;
+    case 'h':
+      return value * 60;
+    case 'd':
+      return value * 1440;
+    default:
+      return 5;
+  }
+};
+
 interface PreviewRunResult {
   previewId: string;
   alertCount: number;
@@ -66,6 +84,7 @@ interface PreviewRunResult {
 
 const runPreview = async ({
   createProps,
+  invocationCount,
   timeframeEnd,
   request,
   esClient,
@@ -76,6 +95,7 @@ const runPreview = async ({
   logger: log,
 }: {
   createProps: Record<string, unknown>;
+  invocationCount: number;
   timeframeEnd: string;
   request: KibanaRequest;
   esClient: IScopedClusterClient;
@@ -87,7 +107,7 @@ const runPreview = async ({
 }): Promise<PreviewRunResult> => {
   const body = {
     ...createProps,
-    invocationCount: 1,
+    invocationCount,
     timeframeEnd,
   };
   console.log(`[${label}] Rule preview HTTP request body:`, JSON.stringify(body, null, 2));
@@ -203,10 +223,11 @@ Propose a modified rule query that filters out the false positive patterns — f
 
 ### Step 3: Compare Original vs Fixed Rule
 Use 'security.fix-false-positive-alerts.compare-rule-fix' to test your suggested query.
+Use the default timeframeMinutes of 10 to preview on the last 10 minutes of data.
 The tool runs the detection engine preview TWICE on the same time interval:
 1. First with the **original unchanged rule** to establish a baseline alert count
 2. Then with the **modified query** to see how many alerts it would produce
-It compares the two counts and tells you whether the fix is effective.
+It fills the entire preview window with rule executions matching the rule's own interval, then compares the two alert counts.
 
 ### Step 4: Evaluate Results
 The comparison tool reports:
@@ -347,7 +368,7 @@ The comparison tool reports:
             .number()
             .min(1)
             .max(1440)
-            .default(60)
+            .default(10)
             .describe(
               'How far in the past to set the preview timeframeEnd, in minutes (1-1440, default 10). The preview runs one rule interval ending at now minus this value.'
             ),
@@ -382,10 +403,15 @@ The comparison tool reports:
               };
             }
 
-            const timeframeEnd = new Date(
-              Date.now() - Number(timeframeMinutes) * 60 * 1000
-            ).toISOString();
-            console.log(`[compare-rule-fix] timeframeEnd: ${timeframeEnd}`);
+            const minutes = Number(timeframeMinutes);
+            const timeframeEnd = new Date().toISOString();
+
+            const ruleInterval = (rule as unknown as Record<string, unknown>).interval as string;
+            const intervalMinutes = parseIntervalToMinutes(ruleInterval || '5m');
+            const invocationCount = Math.max(1, Math.ceil(minutes / intervalMinutes));
+            console.log(
+              `[compare-rule-fix] timeframeEnd: ${timeframeEnd}, interval: ${ruleInterval}, intervalMinutes: ${intervalMinutes}, invocationCount: ${invocationCount}`
+            );
 
             const { protocol, hostname, port } = coreStart.http.getServerInfo();
             const serverBasePath = coreStart.http.basePath.serverBasePath;
@@ -396,6 +422,7 @@ The comparison tool reports:
             const modifiedProps = { ...originalProps, query: String(suggestedQuery) };
 
             const sharedOpts = {
+              invocationCount,
               timeframeEnd,
               request: context.request,
               esClient: context.esClient,
