@@ -343,11 +343,20 @@ The comparison tool reports:
             .describe(
               'The suggested replacement query string (KQL or Lucene, matching the rule language) to test against the original'
             ),
+          timeframeMinutes: z
+            .number()
+            .min(1)
+            .max(1440)
+            .default(60)
+            .describe(
+              'How far in the past to set the preview timeframeEnd, in minutes (1-1440, default 10). The preview runs one rule interval ending at now minus this value.'
+            ),
         }),
-        handler: async ({ ruleId, suggestedQuery }, context) => {
+        handler: async ({ ruleId, suggestedQuery, timeframeMinutes }, context) => {
           try {
             console.log(`[compare-rule-fix] Starting comparison for rule ${ruleId}`);
             console.log(`[compare-rule-fix] Suggested query: ${suggestedQuery}`);
+            console.log(`[compare-rule-fix] timeframeMinutes: ${timeframeMinutes}`);
 
             const [coreStart, startPlugins] = await core.getStartServices();
             const rulesClient = await startPlugins.alerting.getRulesClientWithRequest(
@@ -373,7 +382,10 @@ The comparison tool reports:
               };
             }
 
-            const timeframeEnd = new Date().toISOString();
+            const timeframeEnd = new Date(
+              Date.now() - Number(timeframeMinutes) * 60 * 1000
+            ).toISOString();
+            console.log(`[compare-rule-fix] timeframeEnd: ${timeframeEnd}`);
 
             const { protocol, hostname, port } = coreStart.http.getServerInfo();
             const serverBasePath = coreStart.http.basePath.serverBasePath;
