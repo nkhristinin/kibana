@@ -21,6 +21,7 @@ import { FLEET_ENDPOINT_PACKAGE } from '@kbn/fleet-plugin/common';
 
 import { registerScriptsLibraryRoutes } from './endpoint/routes/scripts_library';
 import { registerWorkflowTriggers, createEmitAlertsCreatedEvent } from './workflows/triggers';
+import { registerWorkflowSteps } from './workflows/steps';
 import { registerAgents } from './agent_builder/agents';
 import { registerAttachments } from './agent_builder/attachments/register_attachments';
 import { registerTools } from './agent_builder/tools/register_tools';
@@ -282,6 +283,7 @@ export class Plugin implements ISecuritySolutionPlugin {
     });
     registerSkills({
       agentBuilder,
+      core,
       experimentalFeatures,
       getStartServices: core.getStartServices,
       kibanaVersion: this.pluginContext.env.packageInfo.version,
@@ -822,6 +824,7 @@ export class Plugin implements ISecuritySolutionPlugin {
 
     if (plugins.workflowsExtensions) {
       registerWorkflowTriggers(plugins.workflowsExtensions);
+      registerWorkflowSteps(plugins.workflowsExtensions);
     }
 
     setupAlertsCapabilitiesSwitcher({
