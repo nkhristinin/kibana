@@ -76,6 +76,7 @@ import { defaultDeepLinks } from './app/links/default_deep_links';
 import { AIValueReportLocatorDefinition } from '../common/locators/ai_value_report/locator';
 import { registerAttachmentUiDefinitions } from './agent_builder/attachment_types';
 import { registerRuleAttachment } from './agent_builder/attachment_types/rule_attachment';
+import { registerWorkflowTriggerDefinitions } from './workflows/triggers';
 
 export class Plugin implements IPlugin<PluginSetup, PluginStart, SetupPlugins, StartPlugins> {
   private config: SecuritySolutionUiConfigType;
@@ -119,6 +120,10 @@ export class Plugin implements IPlugin<PluginSetup, PluginStart, SetupPlugins, S
     plugins: SetupPlugins
   ): PluginSetup {
     this.services.setup(core, plugins);
+
+    if (plugins.workflowsExtensions) {
+      registerWorkflowTriggerDefinitions(plugins.workflowsExtensions);
+    }
 
     const { home, usageCollection, management, cases, share } = plugins;
     const { productFeatureKeys$ } = this.contract;

@@ -53,6 +53,10 @@ import type {
 import type { LlmTasksPluginStart } from '@kbn/llm-tasks-plugin/server';
 import type { EntityStoreSetupContract, EntityStoreStartContract } from '@kbn/entity-store/server';
 import type { SearchInferenceEndpointsPluginSetup } from '@kbn/search-inference-endpoints/server';
+import type {
+  WorkflowsExtensionsServerPluginSetup,
+  WorkflowsExtensionsServerPluginStart,
+} from '@kbn/workflows-extensions/server';
 import type { ProductFeaturesService } from './lib/product_features_service/product_features_service';
 import type { ExperimentalFeatures } from '../common';
 
@@ -80,6 +84,7 @@ export interface SecuritySolutionPluginSetupDependencies {
   agentBuilder?: AgentBuilderPluginSetup;
   entityStore?: EntityStoreSetupContract;
   searchInferenceEndpoints?: SearchInferenceEndpointsPluginSetup;
+  workflowsExtensions?: WorkflowsExtensionsServerPluginSetup;
 }
 
 export interface SecuritySolutionPluginStartDependencies {
@@ -105,6 +110,7 @@ export interface SecuritySolutionPluginStartDependencies {
   anonymization: AnonymizationPluginStart;
   llmTasks?: LlmTasksPluginStart;
   agentBuilder?: AgentBuilderPluginStart;
+  workflowsExtensions?: WorkflowsExtensionsServerPluginStart;
 }
 
 export interface SecuritySolutionPluginSetup {

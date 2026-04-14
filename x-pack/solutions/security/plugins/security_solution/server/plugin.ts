@@ -20,6 +20,7 @@ import type { NewPackagePolicy, UpdatePackagePolicy } from '@kbn/fleet-plugin/co
 import { FLEET_ENDPOINT_PACKAGE } from '@kbn/fleet-plugin/common';
 
 import { registerScriptsLibraryRoutes } from './endpoint/routes/scripts_library';
+import { registerWorkflowTriggers, createEmitAlertsCreatedEvent } from './workflows/triggers';
 import { registerAgents } from './agent_builder/agents';
 import { registerAttachments } from './agent_builder/attachments/register_attachments';
 import { registerTools } from './agent_builder/tools/register_tools';
@@ -567,6 +568,17 @@ export class Plugin implements ISecuritySolutionPlugin {
       secondaryAlias: undefined,
     });
 
+    const emitAlertsCreatedEvent = plugins.workflowsExtensions
+      ? createEmitAlertsCreatedEvent({
+          getWorkflowsExtensionsStart: async () => {
+            const [, startPlugins] = await core.getStartServices();
+            return startPlugins.workflowsExtensions;
+          },
+          http: core.http,
+          logger: this.logger,
+        })
+      : undefined;
+
     const securityRuleTypeOptions = {
       lists: plugins.lists,
       docLinks: core.docLinks,
@@ -589,6 +601,7 @@ export class Plugin implements ISecuritySolutionPlugin {
         osqueryCreateActionService: plugins.osquery?.createActionService,
       }),
       endpointAppContextService: this.endpointAppContextService,
+      emitAlertsCreatedEvent,
     };
 
     const securityRuleTypeWrapper = createSecurityRuleTypeWrapper(securityRuleTypeOptions);
@@ -806,6 +819,10 @@ export class Plugin implements ISecuritySolutionPlugin {
     }
 
     this.registerAgentBuilderAttachmentsAndTools(plugins, core, this.logger);
+
+    if (plugins.workflowsExtensions) {
+      registerWorkflowTriggers(plugins.workflowsExtensions);
+    }
 
     setupAlertsCapabilitiesSwitcher({
       core,
