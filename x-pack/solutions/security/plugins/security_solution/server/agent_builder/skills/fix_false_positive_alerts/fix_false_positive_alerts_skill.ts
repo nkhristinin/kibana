@@ -66,7 +66,6 @@ interface PreviewRunResult {
 
 const runPreview = async ({
   createProps,
-  interval,
   timeframeEnd,
   request,
   esClient,
@@ -77,7 +76,6 @@ const runPreview = async ({
   logger: log,
 }: {
   createProps: Record<string, unknown>;
-  interval: string;
   timeframeEnd: string;
   request: KibanaRequest;
   esClient: IScopedClusterClient;
@@ -89,9 +87,6 @@ const runPreview = async ({
 }): Promise<PreviewRunResult> => {
   const body = {
     ...createProps,
-    interval,
-    from: `now-${interval}`,
-    to: 'now',
     invocationCount: 1,
     timeframeEnd,
   };
@@ -348,18 +343,11 @@ The comparison tool reports:
             .describe(
               'The suggested replacement query string (KQL or Lucene, matching the rule language) to test against the original'
             ),
-          timeframeMinutes: z
-            .number()
-            .min(1)
-            .max(1440)
-            .default(120)
-            .describe('How many minutes of history to preview (1-1440, default 60)'),
         }),
-        handler: async ({ ruleId, suggestedQuery, timeframeMinutes }, context) => {
+        handler: async ({ ruleId, suggestedQuery }, context) => {
           try {
             console.log(`[compare-rule-fix] Starting comparison for rule ${ruleId}`);
             console.log(`[compare-rule-fix] Suggested query: ${suggestedQuery}`);
-            console.log(`[compare-rule-fix] Timeframe: ${timeframeMinutes}m`);
 
             const [coreStart, startPlugins] = await core.getStartServices();
             const rulesClient = await startPlugins.alerting.getRulesClientWithRequest(
@@ -385,8 +373,6 @@ The comparison tool reports:
               };
             }
 
-            const minutes = Number(timeframeMinutes);
-            const interval = `${minutes}m`;
             const timeframeEnd = new Date().toISOString();
 
             const { protocol, hostname, port } = coreStart.http.getServerInfo();
@@ -398,7 +384,6 @@ The comparison tool reports:
             const modifiedProps = { ...originalProps, query: String(suggestedQuery) };
 
             const sharedOpts = {
-              interval,
               timeframeEnd,
               request: context.request,
               esClient: context.esClient,
@@ -472,7 +457,6 @@ The comparison tool reports:
                     originalRuleName: rule.name,
                     originalRuleType: rule.type,
                     suggestedQuery,
-                    timeframeMinutes: minutes,
                     ...(originalResult.errors.length > 0 && {
                       originalPreviewErrors: originalResult.errors,
                     }),
