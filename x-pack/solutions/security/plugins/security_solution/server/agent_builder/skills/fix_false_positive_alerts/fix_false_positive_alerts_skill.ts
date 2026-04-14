@@ -19,6 +19,7 @@ import {
   DEFAULT_ALERTS_INDEX,
   DEFAULT_PREVIEW_INDEX,
   DETECTION_ENGINE_RULES_PREVIEW,
+  DETECTION_ENGINE_RULES_URL,
 } from '../../../../common/constants';
 import type { SecuritySolutionPluginCoreSetupDependencies } from '../../../plugin_contract';
 import { getRuleById } from '../../../lib/detection_engine/rule_management/logic/detection_rules_client/methods/get_rule_by_id';
@@ -231,9 +232,15 @@ It fills the entire preview window with rule executions matching the rule's own 
 
 ### Step 4: Evaluate Results
 The comparison tool reports:
-- **Success**: suggested query produces fewer alerts — recommend applying the change
-- **No improvement**: alert count is the same or higher — suggest further refinements
-- **Over-tuned**: alerts dropped to zero — warn that the query may be too aggressive
+- **Success**: suggested query produces fewer alerts — proceed to Step 5
+- **No improvement**: alert count is the same or higher — suggest further refinements and re-run compare
+- **Over-tuned**: alerts dropped to zero — warn that the query may be too aggressive; do not apply
+
+### Step 5: Apply the Fix
+Only after compare-rule-fix reports **Success** (fewer alerts, not zero), use
+'security.fix-false-positive-alerts.apply-rule-fix' with the ruleId and the
+validated newQuery to patch the live rule in Kibana.
+Do NOT call apply-rule-fix without a prior successful compare-rule-fix result.
 
 ## Best Practices
 - Always verify the flagged alerts manually before bulk-closing them
@@ -522,6 +529,113 @@ The comparison tool reports:
                   type: ToolResultType.error,
                   data: {
                     message: `Failed to compare rule fix for ${ruleId}: ${errorMessage}`,
+                  },
+                },
+              ],
+            };
+          }
+        },
+      },
+      {
+        id: 'security.fix-false-positive-alerts.apply-rule-fix',
+        type: ToolType.builtin,
+        description:
+          'Apply a validated query change to a live detection rule by patching it via the Kibana API. ' +
+          'Only call this after compare-rule-fix has confirmed the new query reduces alert volume without dropping to zero.',
+        schema: z.object({
+          ruleId: z
+            .string()
+            .describe('The detection rule saved-object ID (kibana.alert.rule.uuid) to patch'),
+          newQuery: z
+            .string()
+            .describe(
+              'The replacement query string to apply — must be the same query validated by compare-rule-fix'
+            ),
+          language: z
+            .enum(['kuery', 'lucene'])
+            .optional()
+            .describe(
+              "Query language (kuery or lucene). Omit to keep the rule's existing language."
+            ),
+        }),
+        handler: async ({ ruleId, newQuery, language }, context) => {
+          try {
+            console.log(`[apply-rule-fix] Applying fix for rule ${ruleId}`);
+            console.log(`[apply-rule-fix] New query: ${newQuery}`);
+
+            const [coreStart] = await core.getStartServices();
+            const { protocol, hostname, port } = coreStart.http.getServerInfo();
+            const serverBasePath = coreStart.http.basePath.serverBasePath;
+            const patchUrl = `${protocol}://${hostname}:${port}${serverBasePath}${DETECTION_ENGINE_RULES_URL}`;
+
+            const headers: Record<string, string> = {
+              'content-type': 'application/json',
+              'kbn-xsrf': 'true',
+              'elastic-api-version': '2023-10-31',
+            };
+            const rawHeaders = context.request.headers;
+            if (rawHeaders.authorization) {
+              headers.authorization = String(rawHeaders.authorization);
+            }
+            if (rawHeaders.cookie) {
+              headers.cookie = String(rawHeaders.cookie);
+            }
+
+            const patchBody: Record<string, unknown> = {
+              id: ruleId,
+              query: newQuery,
+              ...(language ? { language } : {}),
+            };
+
+            console.log(`[apply-rule-fix] PATCH ${patchUrl}`, JSON.stringify(patchBody, null, 2));
+            const patchResponse = await fetch(patchUrl, {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify(patchBody),
+            });
+            console.log(`[apply-rule-fix] PATCH response status: ${patchResponse.status}`);
+
+            if (!patchResponse.ok) {
+              const errorText = await patchResponse.text();
+              console.log(`[apply-rule-fix] PATCH error body: ${errorText}`);
+              throw new Error(`Rule patch failed (HTTP ${patchResponse.status}): ${errorText}`);
+            }
+
+            const updatedRule = (await patchResponse.json()) as {
+              name?: string;
+              type?: string;
+              query?: string;
+            };
+
+            const summary =
+              `Successfully patched rule "${updatedRule.name ?? ruleId}" ` +
+              `(type: ${updatedRule.type ?? 'unknown'}). ` +
+              `The new query has been applied: ${updatedRule.query ?? newQuery}`;
+            console.log(`[apply-rule-fix] ${summary}`);
+
+            return {
+              results: [
+                {
+                  type: ToolResultType.other,
+                  data: {
+                    summary,
+                    ruleId,
+                    ruleName: updatedRule.name,
+                    ruleType: updatedRule.type,
+                    appliedQuery: updatedRule.query ?? newQuery,
+                  },
+                },
+              ],
+            };
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.log(`[apply-rule-fix] CAUGHT ERROR: ${errorMessage}`);
+            return {
+              results: [
+                {
+                  type: ToolResultType.error,
+                  data: {
+                    message: `Failed to apply rule fix for ${ruleId}: ${errorMessage}`,
                   },
                 },
               ],
