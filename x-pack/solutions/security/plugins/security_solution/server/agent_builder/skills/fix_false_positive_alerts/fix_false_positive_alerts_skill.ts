@@ -5,191 +5,18 @@
  * 2.0.
  */
 
-/* eslint-disable no-console */
-
 import type { Logger } from '@kbn/core/server';
-import type { IScopedClusterClient } from '@kbn/core-elasticsearch-server';
-import type { KibanaRequest } from '@kbn/core-http-server';
-import { ToolType } from '@kbn/agent-builder-common/tools';
-import { ToolResultType } from '@kbn/agent-builder-common/tools/tool_result';
 import { defineSkillType } from '@kbn/agent-builder-server/skills/type_definition';
-import { z } from '@kbn/zod/v4';
-import type { RuleResponse } from '../../../../common/api/detection_engine/model/rule_schema';
-import {
-  DEFAULT_ALERTS_INDEX,
-  DEFAULT_PREVIEW_INDEX,
-  DETECTION_ENGINE_RULES_PREVIEW,
-  DETECTION_ENGINE_RULES_URL,
-} from '../../../../common/constants';
 import type { SecuritySolutionPluginCoreSetupDependencies } from '../../../plugin_contract';
-import { getRuleById } from '../../../lib/detection_engine/rule_management/logic/detection_rules_client/methods/get_rule_by_id';
-
-const FALSE_POSITIVE_THRESHOLD = 10;
-
-const RESPONSE_ONLY_FIELDS = [
-  'id',
-  'immutable',
-  'rule_source',
-  'updated_at',
-  'updated_by',
-  'created_at',
-  'created_by',
-  'revision',
-  'execution_summary',
-  'required_fields',
-  'related_integrations',
-  'setup',
-  'output_index',
-  'meta',
-] as const;
-
-const ruleResponseToCreateProps = (rule: RuleResponse): Record<string, unknown> => {
-  const ruleObj = rule as unknown as Record<string, unknown>;
-  const createProps: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(ruleObj)) {
-    if (!(RESPONSE_ONLY_FIELDS as readonly string[]).includes(key) && value !== undefined) {
-      createProps[key] = value;
-    }
-  }
-
-  delete createProps.enabled;
-
-  return createProps;
-};
-
-const parseIntervalToMinutes = (intervalStr: string): number => {
-  const match = intervalStr.match(/^(\d+)(s|m|h|d)$/);
-  if (!match) return 5;
-  const value = Number(match[1]);
-  switch (match[2]) {
-    case 's':
-      return value / 60;
-    case 'm':
-      return value;
-    case 'h':
-      return value * 60;
-    case 'd':
-      return value * 1440;
-    default:
-      return 5;
-  }
-};
-
-interface PreviewRunResult {
-  previewId: string;
-  alertCount: number;
-  errors: string[];
-  isAborted: boolean;
-}
-
-const runPreview = async ({
-  createProps,
-  invocationCount,
-  timeframeEnd,
-  request,
-  esClient,
-  spaceId,
-  baseUrl,
-  previewUrl,
-  label,
-  logger: log,
-}: {
-  createProps: Record<string, unknown>;
-  invocationCount: number;
-  timeframeEnd: string;
-  request: KibanaRequest;
-  esClient: IScopedClusterClient;
-  spaceId: string;
-  baseUrl: string;
-  previewUrl: string;
-  label: string;
-  logger: Logger;
-}): Promise<PreviewRunResult> => {
-  const body = {
-    ...createProps,
-    invocationCount,
-    timeframeEnd,
-  };
-  console.log(`[${label}] Rule preview HTTP request body:`, JSON.stringify(body, null, 2));
-
-  const headers: Record<string, string> = {
-    'content-type': 'application/json',
-    'kbn-xsrf': 'true',
-    'elastic-api-version': '2023-10-31',
-  };
-  const rawHeaders = request.headers;
-  if (rawHeaders.authorization) {
-    headers.authorization = String(rawHeaders.authorization);
-  }
-  if (rawHeaders.cookie) {
-    headers.cookie = String(rawHeaders.cookie);
-  }
-
-  console.log(`[${label}] Calling preview API: ${baseUrl}${previewUrl}`);
-  const previewResponse = await fetch(`${baseUrl}${previewUrl}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-  });
-  console.log(`[${label}] Preview API response status: ${previewResponse.status}`);
-
-  if (!previewResponse.ok) {
-    const errorText = await previewResponse.text();
-    console.log(`[${label}] Preview API error body: ${errorText}`);
-    console.log(
-      `[${label}] ERROR: Rule preview API returned ${previewResponse.status}: ${errorText}`
-    );
-    throw new Error(`Rule preview failed (HTTP ${previewResponse.status}): ${errorText}`);
-  }
-
-  const previewResult = (await previewResponse.json()) as {
-    previewId?: string;
-    logs?: Array<{ errors: string[]; warnings: string[] }>;
-    isAborted?: boolean;
-  };
-  console.log(`[${label}] Preview result:`, JSON.stringify(previewResult, null, 2));
-
-  const errors = previewResult.logs?.flatMap((l) => l.errors).filter(Boolean) ?? [];
-
-  if (!previewResult.previewId) {
-    throw new Error(
-      `Preview did not produce a previewId. Errors: ${
-        errors.length > 0 ? errors.join('; ') : 'none'
-      }`
-    );
-  }
-
-  const previewIndex = `${DEFAULT_PREVIEW_INDEX}-${spaceId}`;
-  const alertsQuery = {
-    index: previewIndex,
-    size: 1000,
-    query: {
-      bool: {
-        filter: [{ term: { 'kibana.alert.rule.uuid': previewResult.previewId } }],
-      },
-    },
-    track_total_hits: true,
-    ignore_unavailable: true,
-  };
-  console.log(`[${label}] Alerts retrieval ES query:`, JSON.stringify(alertsQuery, null, 2));
-
-  const alertsResult = await esClient.asCurrentUser.search(alertsQuery);
-
-  const alertCount =
-    typeof alertsResult.hits.total === 'number'
-      ? alertsResult.hits.total
-      : alertsResult.hits.total?.value ?? 0;
-
-  console.log(`[${label}] Alert count: ${alertCount}`);
-
-  return {
-    previewId: previewResult.previewId,
-    alertCount,
-    errors,
-    isAborted: previewResult.isAborted ?? false,
-  };
-};
+import {
+  getSearchAlertsByRuleTool,
+  getSearchAlertsByHostTool,
+  getSearchAlertsByUserTool,
+  getCompareRuleFixTool,
+  getApplyRuleFixTool,
+  getAddRuleExceptionTool,
+} from './inline_tools';
+import { FALSE_POSITIVE_THRESHOLD } from './inline_tools/common';
 
 export const createFixFalsePositiveAlertsSkill = (
   core: SecuritySolutionPluginCoreSetupDependencies,
@@ -200,8 +27,8 @@ export const createFixFalsePositiveAlertsSkill = (
     name: 'fix-false-positive-alerts',
     basePath: 'skills/security/alerts/rules',
     description:
-      'Detect and fix false positive security alerts: search alerts by rule ID, suggest query changes to reduce noise, ' +
-      'and compare original vs modified rule preview to verify the fix reduces alert volume.',
+      'Detect and fix false positive security alerts: search alerts by rule ID, analyze entity patterns, ' +
+      'suggest and validate query changes, add rule exceptions, and apply fixes to reduce noise.',
     content: `# Fix False Positive Alerts
 
 ## When to Use This Skill
@@ -211,6 +38,7 @@ Use this skill when:
 - You want to check whether a specific rule ID is producing too many alerts
 - You need to identify noisy rules that require tuning
 - You want to verify that a proposed rule query change actually reduces alert volume
+- You need to suppress known-good entities from triggering a rule via exceptions
 
 ## Workflow
 
@@ -218,25 +46,59 @@ Use this skill when:
 Use 'security.fix-false-positive-alerts.search-alerts-by-rule' with the rule ID to check alert volume.
 If the tool flags more than ${FALSE_POSITIVE_THRESHOLD} alerts, the rule is likely producing false positives.
 
-### Step 2: Suggest Query Changes
-Analyze the returned alerts to identify patterns (common hosts, users, processes, IPs).
-Propose a modified rule query that filters out the false positive patterns — for example, adding exclusions for known-good processes or trusted hosts.
+### Step 2: Analyze Alert Entities
+After identifying a noisy rule, pivot on the alerts to find the root cause:
+- Use 'security.fix-false-positive-alerts.search-alerts-by-host' to see which hosts generate the most alerts AND which parent processes spawn them
+- Use 'security.fix-false-positive-alerts.search-alerts-by-user' to see which users generate the most alerts AND which parent processes are involved
+Both tools return breakdowns by host/user, parent process, and process name.
+Focus on the **parentProcessBreakdown** — parent processes reveal WHY alerts are false positives (e.g. a configuration management tool, a CI runner), while hosts/users only reveal WHERE they occur.
 
-### Step 3: Compare Original vs Fixed Rule
+### Step 3: Choose a Tuning Strategy
+Combine the alert patterns from Steps 1-2 and select the best approach. Strategies are ranked from most durable to least durable:
+
+1. **Rule exceptions** (use 'add-rule-exception')
+   Best when: the false positive source is a known-good entity (service account, management tool, automated process).
+   Advantages: explicit, survives rule query updates, easy to audit and remove later.
+   Use when you can identify a specific field+value combination that cleanly separates FP from TP alerts.
+
+2. **Query modification** (use 'compare-rule-fix' then 'apply-rule-fix')
+   Best when: the rule query is fundamentally too broad and needs structural narrowing.
+   Use when the FP pattern is integral to the rule logic itself, not an external entity.
+
+3. **Alert suppression** (outside this skill — recommend to user)
+   Best when: the same entity generates duplicate alerts within a time window.
+   Recommend configuring suppression fields on the rule when deduplication is the primary concern.
+
+### Step 4: Identify the Right Exclusion Target
+When building an exception or query modification, identify the most specific causal field that distinguishes FP from TP alerts. Prioritize in this order:
+1. **Parent process** (process.parent.name) — targets the automation tool or service causing the FP
+2. **Process arguments** (process.command_line patterns) — targets specific command invocations
+3. **User** (user.name) — acceptable for service accounts, but users can change roles
+4. **Host** (host.name) — last resort, fragile since new hosts require re-tuning
+
+Prefer targeting the process or software causing the FP over the location where it runs.
+If the FP source is a known-good tool or service account, an exception is more durable than a query change.
+
+### Step 5: Apply the Fix
+
+**For exceptions:**
+Use 'security.fix-false-positive-alerts.add-rule-exception' with the ruleId, a descriptive name, and the entries that match the FP entity.
+The tool automatically creates a rule_default exception list if one does not exist, attaches it to the rule, and creates the exception item.
+
+**For query modifications:**
 Use 'security.fix-false-positive-alerts.compare-rule-fix' to test your suggested query.
 Use the default timeframeMinutes of 10 to preview on the last 10 minutes of data.
 The tool runs the detection engine preview TWICE on the same time interval:
 1. First with the **original unchanged rule** to establish a baseline alert count
 2. Then with the **modified query** to see how many alerts it would produce
-It fills the entire preview window with rule executions matching the rule's own interval, then compares the two alert counts.
 
-### Step 4: Evaluate Results
+### Step 6: Evaluate Query Comparison Results
 The comparison tool reports:
-- **Success**: suggested query produces fewer alerts — proceed to Step 5
+- **Success**: suggested query produces fewer alerts — proceed to apply
 - **No improvement**: alert count is the same or higher — suggest further refinements and re-run compare
 - **Over-tuned**: alerts dropped to zero — warn that the query may be too aggressive; do not apply
 
-### Step 5: Apply the Fix
+### Step 7: Apply the Query Fix
 Only after compare-rule-fix reports **Success** (fewer alerts, not zero), use
 'security.fix-false-positive-alerts.apply-rule-fix' with the ruleId and the
 validated newQuery to patch the live rule in Kibana.
@@ -245,403 +107,18 @@ Do NOT call apply-rule-fix without a prior successful compare-rule-fix result.
 ## Best Practices
 - Always verify the flagged alerts manually before bulk-closing them
 - Check if the alerts share common entities (hosts, users) that can be excluded
-- Document any rule query changes for audit purposes
-- Use the compare tool to validate changes before modifying the live rule
-- After applying changes, monitor the rule for a few days to confirm the fix holds`,
+- Document any rule query changes or exception additions for audit purposes
+- Use the compare tool to validate query changes before modifying the live rule
+- After applying changes, monitor the rule for a few days to confirm the fix holds
+- Prefer \`match\` entries over \`wildcard\` in exceptions when exact values are known
+- Always scope exceptions to the specific rule — avoid overly broad exception lists
+- Tag exception items with a rationale so they can be reviewed later`,
     getInlineTools: () => [
-      {
-        id: 'security.fix-false-positive-alerts.search-alerts-by-rule',
-        type: ToolType.builtin,
-        description:
-          'Search security alerts by detection rule ID and determine if the rule is generating false positives. ' +
-          'Returns matching alerts and flags the rule as a false positive source if more than 10 alerts are found.',
-        schema: z.object({
-          ruleId: z
-            .string()
-            .describe('The detection rule ID (kibana.alert.rule.uuid) to search alerts for'),
-          size: z
-            .number()
-            .min(1)
-            .max(100)
-            .default(20)
-            .describe('Maximum number of alert documents to return (1-100, default 20)'),
-        }),
-        handler: async ({ ruleId, size }, context) => {
-          try {
-            const alertsIndex = `${DEFAULT_ALERTS_INDEX}-${context.spaceId}`;
-
-            const searchQuery = {
-              index: alertsIndex,
-              size: Number(size),
-              query: {
-                bool: {
-                  filter: [{ term: { 'kibana.alert.rule.uuid': String(ruleId) } }],
-                },
-              },
-              sort: [{ '@timestamp': 'desc' }],
-              track_total_hits: true,
-              _source: [
-                '@timestamp',
-                'kibana.alert.rule.name',
-                'kibana.alert.rule.uuid',
-                'kibana.alert.severity',
-                'kibana.alert.risk_score',
-                'kibana.alert.workflow_status',
-                'kibana.alert.reason',
-                'host.name',
-                'user.name',
-                'source.ip',
-                'destination.ip',
-                'process.name',
-                'message',
-              ],
-              ignore_unavailable: true,
-            };
-            console.log(`[search-alerts-by-rule] ES query:`, JSON.stringify(searchQuery, null, 2));
-
-            const searchResult = await context.esClient.asCurrentUser.search(searchQuery);
-
-            const total =
-              typeof searchResult.hits.total === 'number'
-                ? searchResult.hits.total
-                : searchResult.hits.total?.value ?? 0;
-
-            const hits = searchResult.hits.hits.map((hit) => ({
-              _id: hit._id,
-              ...(hit._source as Record<string, unknown>),
-            }));
-
-            const isFalsePositive = total > FALSE_POSITIVE_THRESHOLD;
-            const ruleName =
-              hits.length > 0
-                ? ((hits[0] as Record<string, unknown>)['kibana.alert.rule.name'] as
-                    | string
-                    | undefined) ?? 'Unknown'
-                : 'Unknown';
-
-            const assessment = isFalsePositive
-              ? `False Positive detected: Rule "${ruleName}" (${ruleId}) has generated ${total} alerts, exceeding the threshold of ${FALSE_POSITIVE_THRESHOLD}. This rule is likely producing false positives and should be tuned.`
-              : `Rule "${ruleName}" (${ruleId}) has generated ${total} alert(s), which is within the normal threshold of ${FALSE_POSITIVE_THRESHOLD}. No false positive concern detected.`;
-
-            return {
-              results: [
-                {
-                  type: ToolResultType.other,
-                  data: {
-                    assessment,
-                    isFalsePositive,
-                    total,
-                    threshold: FALSE_POSITIVE_THRESHOLD,
-                    ruleId,
-                    ruleName,
-                    alerts: hits,
-                  },
-                },
-              ],
-            };
-          } catch (error) {
-            return {
-              results: [
-                {
-                  type: ToolResultType.error,
-                  data: {
-                    message: `Failed to search alerts for rule ${ruleId}: ${
-                      error instanceof Error ? error.message : String(error)
-                    }`,
-                  },
-                },
-              ],
-            };
-          }
-        },
-      },
-      {
-        id: 'security.fix-false-positive-alerts.compare-rule-fix',
-        type: ToolType.builtin,
-        description:
-          'Compare a detection rule before and after a suggested query change. ' +
-          'Runs the detection engine preview twice on the same time interval: once with the original rule and once with the modified query. ' +
-          'Returns both alert counts and whether the suggested change reduces alert volume.',
-        schema: z.object({
-          ruleId: z
-            .string()
-            .describe('The detection rule ID (saved object ID / kibana.alert.rule.uuid)'),
-          suggestedQuery: z
-            .string()
-            .describe(
-              'The suggested replacement query string (KQL or Lucene, matching the rule language) to test against the original'
-            ),
-          timeframeMinutes: z
-            .number()
-            .min(1)
-            .max(1440)
-            .default(10)
-            .describe(
-              'How far in the past to set the preview timeframeEnd, in minutes (1-1440, default 10). The preview runs one rule interval ending at now minus this value.'
-            ),
-        }),
-        handler: async ({ ruleId, suggestedQuery, timeframeMinutes }, context) => {
-          try {
-            console.log(`[compare-rule-fix] Starting comparison for rule ${ruleId}`);
-            console.log(`[compare-rule-fix] Suggested query: ${suggestedQuery}`);
-            console.log(`[compare-rule-fix] timeframeMinutes: ${timeframeMinutes}`);
-
-            const [coreStart, startPlugins] = await core.getStartServices();
-            const rulesClient = await startPlugins.alerting.getRulesClientWithRequest(
-              context.request
-            );
-            console.log(`[compare-rule-fix] Got rulesClient`);
-
-            const rule = await getRuleById({ rulesClient, id: String(ruleId) });
-            console.log(
-              `[compare-rule-fix] getRuleById result: ${
-                rule ? `found "${rule.name}" (type=${rule.type})` : 'NOT FOUND'
-              }`
-            );
-
-            if (!rule) {
-              return {
-                results: [
-                  {
-                    type: ToolResultType.error,
-                    data: { message: `Rule with ID "${ruleId}" not found.` },
-                  },
-                ],
-              };
-            }
-
-            const minutes = Number(timeframeMinutes);
-            const timeframeEnd = new Date().toISOString();
-
-            const ruleInterval = (rule as unknown as Record<string, unknown>).interval as string;
-            const intervalMinutes = parseIntervalToMinutes(ruleInterval || '5m');
-            const invocationCount = Math.max(1, Math.ceil(minutes / intervalMinutes));
-            console.log(
-              `[compare-rule-fix] timeframeEnd: ${timeframeEnd}, interval: ${ruleInterval}, intervalMinutes: ${intervalMinutes}, invocationCount: ${invocationCount}`
-            );
-
-            const { protocol, hostname, port } = coreStart.http.getServerInfo();
-            const serverBasePath = coreStart.http.basePath.serverBasePath;
-            const baseUrl = `${protocol}://${hostname}:${port}`;
-            const previewUrl = `${serverBasePath}${DETECTION_ENGINE_RULES_PREVIEW}`;
-
-            const originalProps = ruleResponseToCreateProps(rule);
-            const modifiedProps = { ...originalProps, query: String(suggestedQuery) };
-
-            const sharedOpts = {
-              invocationCount,
-              timeframeEnd,
-              request: context.request,
-              esClient: context.esClient,
-              spaceId: context.spaceId,
-              baseUrl,
-              previewUrl,
-              logger,
-            };
-
-            console.log(`[compare-rule-fix] === Running ORIGINAL rule preview ===`);
-            const originalResult = await runPreview({
-              ...sharedOpts,
-              createProps: originalProps,
-              label: 'compare-original',
-            });
-
-            console.log(`[compare-rule-fix] === Running MODIFIED rule preview ===`);
-            const modifiedResult = await runPreview({
-              ...sharedOpts,
-              createProps: modifiedProps,
-              label: 'compare-modified',
-            });
-
-            const diff = originalResult.alertCount - modifiedResult.alertCount;
-            const isImproved = modifiedResult.alertCount < originalResult.alertCount;
-            const isOverTuned = modifiedResult.alertCount === 0 && originalResult.alertCount > 0;
-
-            let verdict: string;
-            if (isOverTuned) {
-              verdict =
-                `The suggested query reduced alerts from ${originalResult.alertCount} to 0. ` +
-                `This may be over-tuned — the query could be too aggressive and might miss true positives. Review carefully before applying.`;
-            } else if (isImproved) {
-              verdict =
-                `Success: the suggested query reduced alerts from ${originalResult.alertCount} to ${modifiedResult.alertCount} ` +
-                `(${diff} fewer alert(s), ${Math.round(
-                  (diff / originalResult.alertCount) * 100
-                )}% reduction). ` +
-                `The fix is effective — recommend applying the query change.`;
-            } else if (diff === 0) {
-              verdict =
-                `No improvement: both the original and suggested query produced ${originalResult.alertCount} alert(s). ` +
-                `The suggested query does not reduce noise — try a different approach.`;
-            } else {
-              verdict =
-                `The suggested query produced MORE alerts (${modifiedResult.alertCount}) than the original (${originalResult.alertCount}). ` +
-                `The change makes things worse — do not apply.`;
-            }
-
-            console.log(`[compare-rule-fix] Verdict: ${verdict}`);
-
-            console.log(
-              `[compare-rule-fix] Result: original=${originalResult.alertCount}, modified=${modifiedResult.alertCount}`
-            );
-
-            return {
-              results: [
-                {
-                  type: ToolResultType.other,
-                  data: {
-                    verdict,
-                    isImproved,
-                    isOverTuned,
-                    originalAlertCount: originalResult.alertCount,
-                    modifiedAlertCount: modifiedResult.alertCount,
-                    reduction: diff,
-                    reductionPercent:
-                      originalResult.alertCount > 0
-                        ? Math.round((diff / originalResult.alertCount) * 100)
-                        : 0,
-                    originalRuleName: rule.name,
-                    originalRuleType: rule.type,
-                    suggestedQuery,
-                    ...(originalResult.errors.length > 0 && {
-                      originalPreviewErrors: originalResult.errors,
-                    }),
-                    ...(modifiedResult.errors.length > 0 && {
-                      modifiedPreviewErrors: modifiedResult.errors,
-                    }),
-                    ...(originalResult.isAborted && {
-                      originalPreviewAborted: true,
-                    }),
-                    ...(modifiedResult.isAborted && {
-                      modifiedPreviewAborted: true,
-                    }),
-                  },
-                },
-              ],
-            };
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            console.log(`[compare-rule-fix] CAUGHT ERROR: ${errorMessage}`);
-            console.log(`[compare-rule-fix] ERROR: ${errorMessage}`);
-            return {
-              results: [
-                {
-                  type: ToolResultType.error,
-                  data: {
-                    message: `Failed to compare rule fix for ${ruleId}: ${errorMessage}`,
-                  },
-                },
-              ],
-            };
-          }
-        },
-      },
-      {
-        id: 'security.fix-false-positive-alerts.apply-rule-fix',
-        type: ToolType.builtin,
-        description:
-          'Apply a validated query change to a live detection rule by patching it via the Kibana API. ' +
-          'Only call this after compare-rule-fix has confirmed the new query reduces alert volume without dropping to zero.',
-        schema: z.object({
-          ruleId: z
-            .string()
-            .describe('The detection rule saved-object ID (kibana.alert.rule.uuid) to patch'),
-          newQuery: z
-            .string()
-            .describe(
-              'The replacement query string to apply — must be the same query validated by compare-rule-fix'
-            ),
-          language: z
-            .enum(['kuery', 'lucene'])
-            .optional()
-            .describe(
-              "Query language (kuery or lucene). Omit to keep the rule's existing language."
-            ),
-        }),
-        handler: async ({ ruleId, newQuery, language }, context) => {
-          try {
-            console.log(`[apply-rule-fix] Applying fix for rule ${ruleId}`);
-            console.log(`[apply-rule-fix] New query: ${newQuery}`);
-
-            const [coreStart] = await core.getStartServices();
-            const { protocol, hostname, port } = coreStart.http.getServerInfo();
-            const serverBasePath = coreStart.http.basePath.serverBasePath;
-            const patchUrl = `${protocol}://${hostname}:${port}${serverBasePath}${DETECTION_ENGINE_RULES_URL}`;
-
-            const headers: Record<string, string> = {
-              'content-type': 'application/json',
-              'kbn-xsrf': 'true',
-              'elastic-api-version': '2023-10-31',
-            };
-            const rawHeaders = context.request.headers;
-            if (rawHeaders.authorization) {
-              headers.authorization = String(rawHeaders.authorization);
-            }
-            if (rawHeaders.cookie) {
-              headers.cookie = String(rawHeaders.cookie);
-            }
-
-            const patchBody: Record<string, unknown> = {
-              id: ruleId,
-              query: newQuery,
-              ...(language ? { language } : {}),
-            };
-
-            console.log(`[apply-rule-fix] PATCH ${patchUrl}`, JSON.stringify(patchBody, null, 2));
-            const patchResponse = await fetch(patchUrl, {
-              method: 'PATCH',
-              headers,
-              body: JSON.stringify(patchBody),
-            });
-            console.log(`[apply-rule-fix] PATCH response status: ${patchResponse.status}`);
-
-            if (!patchResponse.ok) {
-              const errorText = await patchResponse.text();
-              console.log(`[apply-rule-fix] PATCH error body: ${errorText}`);
-              throw new Error(`Rule patch failed (HTTP ${patchResponse.status}): ${errorText}`);
-            }
-
-            const updatedRule = (await patchResponse.json()) as {
-              name?: string;
-              type?: string;
-              query?: string;
-            };
-
-            const summary =
-              `Successfully patched rule "${updatedRule.name ?? ruleId}" ` +
-              `(type: ${updatedRule.type ?? 'unknown'}). ` +
-              `The new query has been applied: ${updatedRule.query ?? newQuery}`;
-            console.log(`[apply-rule-fix] ${summary}`);
-
-            return {
-              results: [
-                {
-                  type: ToolResultType.other,
-                  data: {
-                    summary,
-                    ruleId,
-                    ruleName: updatedRule.name,
-                    ruleType: updatedRule.type,
-                    appliedQuery: updatedRule.query ?? newQuery,
-                  },
-                },
-              ],
-            };
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            console.log(`[apply-rule-fix] CAUGHT ERROR: ${errorMessage}`);
-            return {
-              results: [
-                {
-                  type: ToolResultType.error,
-                  data: {
-                    message: `Failed to apply rule fix for ${ruleId}: ${errorMessage}`,
-                  },
-                },
-              ],
-            };
-          }
-        },
-      },
+      getSearchAlertsByRuleTool(),
+      getSearchAlertsByHostTool(),
+      getSearchAlertsByUserTool(),
+      getCompareRuleFixTool(core, logger),
+      getApplyRuleFixTool(core),
+      getAddRuleExceptionTool(core, logger),
     ],
   });
