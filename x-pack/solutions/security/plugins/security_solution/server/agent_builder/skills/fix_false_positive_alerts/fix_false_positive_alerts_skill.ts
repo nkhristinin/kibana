@@ -104,32 +104,41 @@ When building an exception or query modification, use the most specific causal f
 
 **For exceptions (Branches A-E):**
 Use 'security.fix-false-positive-alerts.add-rule-exception' with the ruleId, a descriptive name, and the entries that match the FP entity.
-The tool automatically creates a rule_default exception list if one does not exist, attaches it to the rule, and creates the exception item.
+The tool creates a rule_default exception list (if needed), attaches it to the rule, and creates the exception item.
+The result includes \`exceptionListReference.list_id\` — save it for the verification step.
 
 **For query modifications (Branch F):**
-Use 'security.fix-false-positive-alerts.compare-rule-fix' to test your suggested query.
-Use the default timeframeMinutes of 10 to preview on the last 10 minutes of data.
-The tool runs the detection engine preview TWICE on the same time interval:
-1. First with the **original unchanged rule** to establish a baseline alert count
-2. Then with the **modified query** to see how many alerts it would produce
+Use 'security.fix-false-positive-alerts.compare-rule-fix' with \`suggestedQuery\` to test your suggested query.
+The tool runs the detection engine preview TWICE: once with the original rule, once with the modified query.
 
-### Step 6: Evaluate Query Comparison Results (Branch F only)
+### Step 6: Verify the Fix with Rule Preview (ALL branches)
+After applying ANY fix (exception or query change), ALWAYS run 'security.fix-false-positive-alerts.compare-rule-fix' to verify the fix reduces alerts.
+
+**For exceptions (Branches A-E):**
+Call compare-rule-fix with \`excludeExceptionsFromBaseline\` set to the list_id returned by add-rule-exception.
+This strips the new exception from the baseline run so you see a true before/after comparison:
+- Baseline run: rule WITHOUT the new exception (simulates the old state)
+- Modified run: rule WITH the exception (current state)
+
+**For query modifications (Branch F):**
+Call compare-rule-fix with \`suggestedQuery\` set to the new query.
+
+### Step 7: Evaluate Comparison Results
 The comparison tool reports:
-- **Success**: suggested query produces fewer alerts — proceed to apply
-- **No improvement**: alert count is the same or higher — refine the query and re-run compare (up to 3 attempts)
-- **Over-tuned**: alerts dropped to zero — the query is too aggressive; widen it slightly and re-run compare
+- **Success**: the fix reduced alerts — the exception is confirmed effective (for Branches A-E, done); for Branch F, proceed to apply the query
+- **No improvement**: alert count unchanged — the fix is ineffective. Revisit the exclusion target and try a different field or value (up to 3 attempts)
+- **Over-tuned**: alerts dropped to zero — the fix may be too aggressive and could miss true positives. Review carefully
 
-### Step 7: Apply the Query Fix (Branch F only)
+### Step 8: Apply the Query Fix (Branch F only)
 Only after compare-rule-fix reports **Success** (fewer alerts, not zero), use
 'security.fix-false-positive-alerts.apply-rule-fix' with the ruleId and the
 validated newQuery to patch the live rule in Kibana.
 Do NOT call apply-rule-fix without a prior successful compare-rule-fix result.
 
 ## Best Practices
-- Always verify the flagged alerts manually before bulk-closing them
+- ALWAYS verify fixes via compare-rule-fix before considering a fix complete
 - Check if the alerts share common entities (hosts, users) that can be excluded
 - Document any rule query changes or exception additions for audit purposes
-- Use the compare tool to validate query changes before modifying the live rule
 - After applying changes, monitor the rule for a few days to confirm the fix holds
 - Prefer \`match\` entries over \`wildcard\` in exceptions when exact values are known
 - Always scope exceptions to the specific rule — avoid overly broad exception lists

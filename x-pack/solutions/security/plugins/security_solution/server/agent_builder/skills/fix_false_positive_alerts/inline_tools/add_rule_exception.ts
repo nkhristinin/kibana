@@ -207,7 +207,7 @@ export const getAddRuleExceptionTool = (
       const summary =
         `Successfully added exception "${createdItem.name}" to rule "${rule.name}". ` +
         `Exception item ID: ${createdItem.item_id}. ` +
-        `Entries: ${JSON.stringify(createdItem.entries)}`;
+        `Use compare-rule-fix with excludeExceptionsFromBaseline: ["${defaultList.list_id}"] to verify the exception reduces alerts.`;
       console.log(`[add-rule-exception] ${summary}`);
 
       return {
@@ -220,6 +220,12 @@ export const getAddRuleExceptionTool = (
               ruleName: rule.name,
               exceptionItemId: createdItem.item_id,
               exceptionListId: defaultList.list_id,
+              exceptionListReference: {
+                id: defaultList.id,
+                list_id: defaultList.list_id,
+                type: defaultList.type,
+                namespace_type: defaultList.namespace_type,
+              },
               entries: createdItem.entries,
             },
           },
