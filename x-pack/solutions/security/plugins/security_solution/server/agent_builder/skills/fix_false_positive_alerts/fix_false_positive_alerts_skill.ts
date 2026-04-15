@@ -40,6 +40,12 @@ Use this skill when:
 - You want to verify that a proposed rule query change actually reduces alert volume
 - You need to suppress known-good entities from triggering a rule via exceptions
 
+## CRITICAL: Autonomous Decision-Making
+
+This skill MUST make tuning decisions autonomously. NEVER present a list of options and ask the user to choose.
+Analyze the data, pick the best strategy based on the decision tree below, explain your reasoning, and proceed to apply the fix.
+Only pause to ask the user if two strategies are genuinely equivalent and there is no data signal to break the tie.
+
 ## Workflow
 
 ### Step 1: Identify the Problem
@@ -53,52 +59,67 @@ After identifying a noisy rule, pivot on the alerts to find the root cause:
 Both tools return breakdowns by host/user, parent process, and process name.
 Focus on the **parentProcessBreakdown** — parent processes reveal WHY alerts are false positives (e.g. a configuration management tool, a CI runner), while hosts/users only reveal WHERE they occur.
 
-### Step 3: Choose a Tuning Strategy
-Combine the alert patterns from Steps 1-2 and select the best approach. Strategies are ranked from most durable to least durable:
+### Step 3: Decide on a Tuning Strategy (Autonomous Decision Tree)
+Walk through this decision tree top-to-bottom. Use the FIRST branch that matches the data from Steps 1-2. Do NOT present multiple options to the user — pick one and proceed.
 
-1. **Rule exceptions** (use 'add-rule-exception')
-   Best when: the false positive source is a known-good entity (service account, management tool, automated process).
-   Advantages: explicit, survives rule query updates, easy to audit and remove later.
-   Use when you can identify a specific field+value combination that cleanly separates FP from TP alerts.
+**Branch A — Parent process available:**
+If parentProcessBreakdown is non-empty and a single parent process accounts for >50% of alerts:
+  → Create a rule exception excluding that process.parent.name value.
+  Reasoning: parent process is the most specific causal signal and survives host/user changes.
 
-2. **Query modification** (use 'compare-rule-fix' then 'apply-rule-fix')
-   Best when: the rule query is fundamentally too broad and needs structural narrowing.
-   Use when the FP pattern is integral to the rule logic itself, not an external entity.
+**Branch B — Process name available (no parent process):**
+If parentProcessBreakdown is empty but processBreakdown is non-empty and a single process accounts for >50% of alerts:
+  → Create a rule exception excluding that process.name value.
 
-3. **Alert suppression** (outside this skill — recommend to user)
-   Best when: the same entity generates duplicate alerts within a time window.
-   Recommend configuring suppression fields on the rule when deduplication is the primary concern.
+**Branch C — User-driven pattern:**
+If no process data is available but userBreakdown shows a single user (likely a service account) accounting for >50% of alerts:
+  → Create a rule exception excluding that user.name value.
 
-### Step 4: Identify the Right Exclusion Target
-When building an exception or query modification, identify the most specific causal field that distinguishes FP from TP alerts. Prioritize in this order:
-1. **Parent process** (process.parent.name) — targets the automation tool or service causing the FP
-2. **Process arguments** (process.command_line patterns) — targets specific command invocations
-3. **User** (user.name) — acceptable for service accounts, but users can change roles
-4. **Host** (host.name) — last resort, fragile since new hosts require re-tuning
+**Branch D — Host-driven pattern (single host dominates):**
+If no process or user data is available but hostBreakdown shows a single host accounting for >80% of alerts:
+  → Create a rule exception excluding that host.name value.
 
-Prefer targeting the process or software causing the FP over the location where it runs.
-If the FP source is a known-good tool or service account, an exception is more durable than a query change.
+**Branch E — Source IP / network pattern:**
+If alert data is network-centric (no process/user data, but source.ip or destination.ip is consistent across alerts):
+  → Create a rule exception excluding that source.ip (or destination.ip) value.
+  This is common for Packetbeat / network rules where process context is unavailable.
+
+**Branch F — Broad rule query issue:**
+If no single entity dominates (alerts spread across many hosts/users/IPs with no clear outlier):
+  → The rule query itself is too broad. Modify the query using compare-rule-fix, then apply-rule-fix.
+  Craft a narrower query that excludes the dominant pattern (e.g. add a NOT clause for the most common field values).
+
+After choosing a branch, state which branch you selected and why in a single sentence, then proceed directly to apply the fix.
+
+### Step 4: Identify the Exclusion Target
+When building an exception or query modification, use the most specific causal field available. Priority order:
+1. **Parent process** (process.parent.name)
+2. **Process name** (process.name)
+3. **Process arguments** (process.command_line patterns)
+4. **User** (user.name) — acceptable for service accounts
+5. **Source/destination IP** (source.ip, destination.ip) — for network-only rules
+6. **Host** (host.name) — last resort, fragile
 
 ### Step 5: Apply the Fix
 
-**For exceptions:**
+**For exceptions (Branches A-E):**
 Use 'security.fix-false-positive-alerts.add-rule-exception' with the ruleId, a descriptive name, and the entries that match the FP entity.
 The tool automatically creates a rule_default exception list if one does not exist, attaches it to the rule, and creates the exception item.
 
-**For query modifications:**
+**For query modifications (Branch F):**
 Use 'security.fix-false-positive-alerts.compare-rule-fix' to test your suggested query.
 Use the default timeframeMinutes of 10 to preview on the last 10 minutes of data.
 The tool runs the detection engine preview TWICE on the same time interval:
 1. First with the **original unchanged rule** to establish a baseline alert count
 2. Then with the **modified query** to see how many alerts it would produce
 
-### Step 6: Evaluate Query Comparison Results
+### Step 6: Evaluate Query Comparison Results (Branch F only)
 The comparison tool reports:
 - **Success**: suggested query produces fewer alerts — proceed to apply
-- **No improvement**: alert count is the same or higher — suggest further refinements and re-run compare
-- **Over-tuned**: alerts dropped to zero — warn that the query may be too aggressive; do not apply
+- **No improvement**: alert count is the same or higher — refine the query and re-run compare (up to 3 attempts)
+- **Over-tuned**: alerts dropped to zero — the query is too aggressive; widen it slightly and re-run compare
 
-### Step 7: Apply the Query Fix
+### Step 7: Apply the Query Fix (Branch F only)
 Only after compare-rule-fix reports **Success** (fewer alerts, not zero), use
 'security.fix-false-positive-alerts.apply-rule-fix' with the ruleId and the
 validated newQuery to patch the live rule in Kibana.
