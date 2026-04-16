@@ -22,6 +22,7 @@ import { FLEET_ENDPOINT_PACKAGE } from '@kbn/fleet-plugin/common';
 import { registerScriptsLibraryRoutes } from './endpoint/routes/scripts_library';
 import { registerWorkflowTriggers, createEmitAlertsCreatedEvent } from './workflows/triggers';
 import { registerWorkflowSteps } from './workflows/steps';
+import { installPrebuiltWorkflows } from './workflows/prebuilt';
 import { registerAgents } from './agent_builder/agents';
 import { registerAttachments } from './agent_builder/attachments/register_attachments';
 import { registerTools } from './agent_builder/tools/register_tools';
@@ -825,6 +826,19 @@ export class Plugin implements ISecuritySolutionPlugin {
     if (plugins.workflowsExtensions) {
       registerWorkflowTriggers(plugins.workflowsExtensions);
       registerWorkflowSteps(plugins.workflowsExtensions);
+    }
+
+    if (plugins.workflowsManagement) {
+      this.logger.info('Workflows Management plugin available, scheduling prebuilt workflow installation');
+      installPrebuiltWorkflows({
+        logger: this.logger,
+        getStartServices: core.getStartServices,
+        managementApi: plugins.workflowsManagement.management,
+      }).catch((err) => {
+        this.logger.warn(`Failed to install prebuilt workflows: ${err}`);
+      });
+    } else {
+      this.logger.debug('Workflows Management plugin not available, skipping prebuilt workflow installation');
     }
 
     setupAlertsCapabilitiesSwitcher({
