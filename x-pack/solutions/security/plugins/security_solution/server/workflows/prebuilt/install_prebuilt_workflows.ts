@@ -19,9 +19,9 @@ interface InstallPrebuiltWorkflowsParams {
 }
 
 /**
- * Ensures all prebuilt Security workflows exist in the default space.
- * Idempotent: skips any workflow whose deterministic ID already exists so
- * user-modified copies are never overwritten.
+ * Ensures all prebuilt Security workflows are installed and up-to-date
+ * in the default space. Uses overwrite mode so definitions are always
+ * synced with the latest code.
  *
  * Called from plugin setup; awaits `getStartServices` so core is ready.
  */
@@ -37,21 +37,10 @@ export const installPrebuiltWorkflows = async ({
     const spaceId = 'default';
     const fakeRequest = createFakeRequest();
 
-    const toInstall = [];
-    for (const { id, yaml } of PREBUILT_WORKFLOWS) {
-      const existing = await managementApi.getWorkflow(id, spaceId);
-      if (existing) {
-        scopedLogger.debug(`Prebuilt workflow '${id}' already exists, skipping`);
-        continue;
-      }
-      toInstall.push({ id, yaml });
-    }
-
-    if (toInstall.length === 0) {
-      return;
-    }
-
-    const result = await managementApi.bulkCreateWorkflows(toInstall, spaceId, fakeRequest);
+    const toInstall = PREBUILT_WORKFLOWS.map(({ id, yaml }) => ({ id, yaml }));
+    const result = await managementApi.bulkCreateWorkflows(toInstall, spaceId, fakeRequest, {
+      overwrite: true,
+    });
 
     for (const created of result.created) {
       scopedLogger.info(`Installed prebuilt workflow '${created.id}'`);
