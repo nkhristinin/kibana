@@ -12,3 +12,11 @@ export {
   alertsSearchStepCommonDefinition,
 } from './alerts_search_step';
 export type { AlertsSearchInput, AlertsSearchOutput } from './alerts_search_step';
+
+export {
+  NOISY_RULE_STEP_TYPE_ID,
+  NoisyRuleInputSchema,
+  NoisyRuleOutputSchema,
+  noisyRuleStepCommonDefinition,
+} from './noisy_rule_step';
+export type { NoisyRuleInput, NoisyRuleOutput } from './noisy_rule_step';

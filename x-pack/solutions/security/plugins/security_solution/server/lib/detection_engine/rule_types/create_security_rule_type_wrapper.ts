@@ -529,6 +529,7 @@ export const createSecurityRuleTypeWrapper: CreateSecurityRuleTypeWrapper =
           if (!isPreview && emitAlertsCreatedEvent && result.createdSignalsCount > 0) {
             await emitAlertsCreatedEvent({
               spaceId,
+              scopedClusterClient: services.scopedClusterClient,
               event: {
                 rule_id: rule.id,
                 rule_name: rule.name,

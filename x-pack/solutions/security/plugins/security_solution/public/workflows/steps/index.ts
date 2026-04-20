@@ -13,4 +13,7 @@ export const registerWorkflowStepDefinitions = (
   workflowsExtensions.registerStepDefinition(() =>
     import('./alerts_search_step').then((m) => m.alertsSearchPublicStepDefinition)
   );
+  workflowsExtensions.registerStepDefinition(() =>
+    import('./noisy_rule_step').then((m) => m.noisyRulePublicStepDefinition)
+  );
 };

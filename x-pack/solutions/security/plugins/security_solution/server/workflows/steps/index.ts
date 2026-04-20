@@ -7,9 +7,11 @@
 
 import type { WorkflowsExtensionsServerPluginSetup } from '@kbn/workflows-extensions/server';
 import { alertsSearchStepDefinition } from './alerts_search_step';
+import { noisyRuleStepDefinition } from './noisy_rule_step';
 
 export const registerWorkflowSteps = (
   workflowsExtensions: WorkflowsExtensionsServerPluginSetup
 ): void => {
   workflowsExtensions.registerStepDefinition(alertsSearchStepDefinition);
+  workflowsExtensions.registerStepDefinition(noisyRuleStepDefinition);
 };
