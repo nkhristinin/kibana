@@ -11,6 +11,7 @@ import { alertsSearchStepDefinition } from './alerts_search_step';
 import { getGetAutonomousModeStepDefinition } from './get_autonomous_mode_step';
 import { proposeRuleFixStepDefinition } from './propose_rule_fix_step';
 import { getApplyRuleFixStepDefinition } from './apply_rule_fix_step';
+import { noisyRuleStepDefinition } from './noisy_rule_step';
 
 export const registerWorkflowSteps = (
   workflowsExtensions: WorkflowsExtensionsServerPluginSetup,
@@ -20,4 +21,5 @@ export const registerWorkflowSteps = (
   workflowsExtensions.registerStepDefinition(getGetAutonomousModeStepDefinition(getStartServices));
   workflowsExtensions.registerStepDefinition(proposeRuleFixStepDefinition);
   workflowsExtensions.registerStepDefinition(getApplyRuleFixStepDefinition(getStartServices));
+  workflowsExtensions.registerStepDefinition(noisyRuleStepDefinition);
 };

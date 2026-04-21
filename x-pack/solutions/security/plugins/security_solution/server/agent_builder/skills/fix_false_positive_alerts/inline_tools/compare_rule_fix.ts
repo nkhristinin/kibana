@@ -11,6 +11,7 @@ import type { Logger } from '@kbn/core/server';
 import { ToolType } from '@kbn/agent-builder-common/tools';
 import { ToolResultType } from '@kbn/agent-builder-common/tools/tool_result';
 import { z } from '@kbn/zod/v4';
+import type { ToolHandlerContext } from '@kbn/agent-builder-server';
 import { DETECTION_ENGINE_RULES_PREVIEW } from '../../../../../common/constants';
 import type { SecuritySolutionPluginCoreSetupDependencies } from '../../../../plugin_contract';
 import { getRuleById } from '../../../../lib/detection_engine/rule_management/logic/detection_rules_client/methods/get_rule_by_id';
@@ -26,17 +27,28 @@ export const getCompareRuleFixTool = (
   logger: Logger
 ) => ({
   id: 'security.fix-false-positive-alerts.compare-rule-fix',
-  type: ToolType.builtin,
+  type: ToolType.builtin as const,
   description:
-    'Compare a detection rule before and after a suggested query change. ' +
-    'Runs the detection engine preview twice on the same time interval: once with the original rule and once with the modified query. ' +
-    'Returns both alert counts and whether the suggested change reduces alert volume.',
+    'Compare a detection rule before and after a suggested fix (query change, exception, or both). ' +
+    'Runs the detection engine preview twice on the same time interval: once as the baseline and once with the modification applied. ' +
+    'Returns both alert counts and whether the fix reduces alert volume. ' +
+    'For exception verification: first add the exception via add-rule-exception, then call this tool with excludeExceptionsFromBaseline ' +
+    'containing the list_id — the baseline run strips that exception to show the before/after delta.',
   schema: z.object({
     ruleId: z.string().describe('The detection rule ID (saved object ID / kibana.alert.rule.uuid)'),
     suggestedQuery: z
       .string()
+      .optional()
       .describe(
-        'The suggested replacement query string (KQL or Lucene, matching the rule language) to test against the original'
+        'Optional replacement query string (KQL or Lucene, matching the rule language) to test against the original'
+      ),
+    excludeExceptionsFromBaseline: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Optional list_ids of exception lists to strip from the baseline (original) preview run. ' +
+          'Use this after adding an exception to the rule: the baseline run will exclude the new exception list ' +
+          'to show the before state, while the modified run keeps it to show the after state.'
       ),
     timeframeMinutes: z
       .number()
@@ -47,21 +59,35 @@ export const getCompareRuleFixTool = (
         'How far in the past to set the preview timeframeEnd, in minutes (1-1440, default 10). The preview runs one rule interval ending at now minus this value.'
       ),
   }),
-  handler: async (
-    {
-      ruleId,
-      suggestedQuery,
-      timeframeMinutes,
-    }: { ruleId: string; suggestedQuery: string; timeframeMinutes: number },
-    context: {
-      request: import('@kbn/core-http-server').KibanaRequest;
-      esClient: import('@kbn/core-elasticsearch-server').IScopedClusterClient;
-      spaceId: string;
-    }
-  ) => {
+  handler: async (args: Record<string, unknown>, context: ToolHandlerContext) => {
+    const { ruleId, suggestedQuery, excludeExceptionsFromBaseline, timeframeMinutes } = args as {
+      ruleId: string;
+      suggestedQuery?: string;
+      excludeExceptionsFromBaseline?: string[];
+      timeframeMinutes: number;
+    };
     try {
+      if (!suggestedQuery && !excludeExceptionsFromBaseline?.length) {
+        return {
+          results: [
+            {
+              type: ToolResultType.error,
+              data: {
+                message:
+                  'At least one of suggestedQuery or excludeExceptionsFromBaseline must be provided.',
+              },
+            },
+          ],
+        };
+      }
+
       console.log(`[compare-rule-fix] Starting comparison for rule ${ruleId}`);
-      console.log(`[compare-rule-fix] Suggested query: ${suggestedQuery}`);
+      console.log(`[compare-rule-fix] Suggested query: ${suggestedQuery ?? '(unchanged)'}`);
+      console.log(
+        `[compare-rule-fix] Exclude exceptions from baseline: ${
+          excludeExceptionsFromBaseline?.join(', ') ?? '(none)'
+        }`
+      );
       console.log(`[compare-rule-fix] timeframeMinutes: ${timeframeMinutes}`);
 
       const [, startPlugins] = await core.getStartServices();
@@ -99,8 +125,22 @@ export const getCompareRuleFixTool = (
       const { baseUrl, serverBasePath } = await getKibanaBaseUrl(core);
       const previewUrl = `${serverBasePath}${DETECTION_ENGINE_RULES_PREVIEW}`;
 
-      const originalProps = ruleResponseToCreateProps(rule);
-      const modifiedProps = { ...originalProps, query: String(suggestedQuery) };
+      const ruleProps = ruleResponseToCreateProps(rule);
+
+      const originalProps = { ...ruleProps };
+      if (excludeExceptionsFromBaseline?.length) {
+        const currentExceptions = (ruleProps.exceptions_list ?? []) as Array<
+          Record<string, unknown>
+        >;
+        originalProps.exceptions_list = currentExceptions.filter(
+          (ex) => !excludeExceptionsFromBaseline.includes(String(ex.list_id))
+        );
+      }
+
+      const modifiedProps = { ...ruleProps };
+      if (suggestedQuery) {
+        modifiedProps.query = String(suggestedQuery);
+      }
 
       const sharedOpts = {
         invocationCount,
@@ -130,25 +170,26 @@ export const getCompareRuleFixTool = (
       const isImproved = modifiedResult.alertCount < originalResult.alertCount;
       const isOverTuned = modifiedResult.alertCount === 0 && originalResult.alertCount > 0;
 
+      const fixLabel = suggestedQuery ? 'query change' : 'exception';
       let verdict: string;
       if (isOverTuned) {
         verdict =
-          `The suggested query reduced alerts from ${originalResult.alertCount} to 0. ` +
-          `This may be over-tuned — the query could be too aggressive and might miss true positives. Review carefully before applying.`;
+          `The ${fixLabel} reduced alerts from ${originalResult.alertCount} to 0. ` +
+          `This may be over-tuned and might miss true positives. Review carefully.`;
       } else if (isImproved) {
         verdict =
-          `Success: the suggested query reduced alerts from ${originalResult.alertCount} to ${modifiedResult.alertCount} ` +
+          `Success: the ${fixLabel} reduced alerts from ${originalResult.alertCount} to ${modifiedResult.alertCount} ` +
           `(${diff} fewer alert(s), ${Math.round(
             (diff / originalResult.alertCount) * 100
           )}% reduction). ` +
-          `The fix is effective — recommend applying the query change.`;
+          `The fix is effective.`;
       } else if (diff === 0) {
         verdict =
-          `No improvement: both the original and suggested query produced ${originalResult.alertCount} alert(s). ` +
-          `The suggested query does not reduce noise — try a different approach.`;
+          `No improvement: both the baseline and modified rule produced ${originalResult.alertCount} alert(s). ` +
+          `The ${fixLabel} does not reduce noise — try a different approach.`;
       } else {
         verdict =
-          `The suggested query produced MORE alerts (${modifiedResult.alertCount}) than the original (${originalResult.alertCount}). ` +
+          `The ${fixLabel} produced MORE alerts (${modifiedResult.alertCount}) than the baseline (${originalResult.alertCount}). ` +
           `The change makes things worse — do not apply.`;
       }
 
@@ -175,7 +216,8 @@ export const getCompareRuleFixTool = (
                   : 0,
               originalRuleName: rule.name,
               originalRuleType: rule.type,
-              suggestedQuery,
+              ...(suggestedQuery && { suggestedQuery }),
+              ...(excludeExceptionsFromBaseline?.length && { excludeExceptionsFromBaseline }),
               ...(originalResult.errors.length > 0 && {
                 originalPreviewErrors: originalResult.errors,
               }),

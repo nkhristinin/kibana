@@ -34,5 +34,15 @@ export {
   ApplyRuleFixInputSchema,
   ApplyRuleFixOutputSchema,
   applyRuleFixStepCommonDefinition,
+  ApplyRuleFixInput,
+  ApplyRuleFixOutput,
 } from './apply_rule_fix_step';
-export type { ApplyRuleFixInput, ApplyRuleFixOutput } from './apply_rule_fix_step';
+
+export type {
+  NOISY_RULE_STEP_TYPE_ID,
+  NoisyRuleInputSchema,
+  NoisyRuleOutputSchema,
+  noisyRuleStepCommonDefinition,
+} from './noisy_rule_step';
+
+export type { NoisyRuleInput, NoisyRuleOutput } from './noisy_rule_step';

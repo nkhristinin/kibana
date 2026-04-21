@@ -57,6 +57,7 @@ import type {
   WorkflowsExtensionsServerPluginSetup,
   WorkflowsExtensionsServerPluginStart,
 } from '@kbn/workflows-extensions/server';
+import type { WorkflowsServerPluginSetup } from '@kbn/workflows-management-plugin/server';
 import type { ProductFeaturesService } from './lib/product_features_service/product_features_service';
 import type { ExperimentalFeatures } from '../common';
 
@@ -85,6 +86,7 @@ export interface SecuritySolutionPluginSetupDependencies {
   entityStore?: EntityStoreSetupContract;
   searchInferenceEndpoints?: SearchInferenceEndpointsPluginSetup;
   workflowsExtensions?: WorkflowsExtensionsServerPluginSetup;
+  workflowsManagement?: WorkflowsServerPluginSetup;
 }
 
 export interface SecuritySolutionPluginStartDependencies {

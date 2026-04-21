@@ -22,4 +22,7 @@ export const registerWorkflowStepDefinitions = (
   workflowsExtensions.registerStepDefinition(() =>
     import('./apply_rule_fix_step').then((m) => m.applyRuleFixPublicStepDefinition)
   );
+  workflowsExtensions.registerStepDefinition(() =>
+    import('./noisy_rule_step').then((m) => m.noisyRulePublicStepDefinition)
+  );
 };
