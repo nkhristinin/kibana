@@ -1,0 +1,102 @@
+name: "Security Rule Auto-Fix"
+description: "Diagnose a failing detection rule and propose a fix using the Agent Builder fix-rule-errors skill. Applies automatically in 'auto' mode; waits for human approval in 'suggest' mode."
+
+triggers:
+  - type: manual
+
+inputs:
+  - name: rule_id
+    type: string
+    required: true
+
+steps:
+  - name: read_mode
+    type: security.autonomousMode.get
+    with: {}
+
+  - name: mode_gate
+    type: if
+    condition: 'steps.read_mode.output.mode : "auto"'
+    steps:
+      # --- Auto path: one agent run does diagnose -> validate -> apply ---
+      - name: ai_auto_fix
+        type: ai.agent
+        with:
+          message: |
+            Detection rule {{ inputs.rule_id }} is failing with execution errors.
+
+            Load the fix-rule-errors skill and follow its instructions end-to-end:
+            1. Use get-rule-errors to fetch the rule definition and recent errors
+            2. Diagnose the root cause
+            3. Propose a specific fix
+            4. Use validate-rule-fix to verify the fix works
+            5. If validation passes, use apply-rule-fix to apply the fix
+            6. Report what you did and whether it succeeded
+
+    else:
+      # --- Suggest path: agent proposes only, wait for approval, then apply ---
+      - name: ai_propose
+        type: ai.agent
+        with:
+          message: |
+            Detection rule {{ inputs.rule_id }} is failing with execution errors.
+
+            Load the fix-rule-errors skill and follow steps 1-4 ONLY:
+            1. Use get-rule-errors to fetch the rule definition and recent errors
+            2. Diagnose the root cause
+            3. Propose a specific fix
+            4. Use validate-rule-fix to verify the fix works
+
+            DO NOT call apply-rule-fix. Stop after validation.
+
+            In your final response, include a clearly-labelled JSON block with the
+            validated proposal so it can be approved later:
+            ```json
+            {"rule_id":"{{ inputs.rule_id }}","proposedChanges":{},"summary":""}
+            ```
+
+      - name: wait_for_approval
+        type: waitForInput
+        with:
+          message: "Review and approve the proposed fix for rule {{ inputs.rule_id }}"
+          schema:
+            type: object
+            properties:
+              approved:
+                type: boolean
+                description: "True to apply the proposed fix, false to skip."
+            required:
+              - approved
+
+      - name: approval_gate
+        type: if
+        condition: "steps.wait_for_approval.output.approved : true"
+        steps:
+          - name: ai_apply_approved
+            type: ai.agent
+            with:
+              message: |
+                The user has approved the fix proposed earlier for detection rule
+                `{{ inputs.rule_id }}`. Apply it now. Do NOT re-diagnose or re-validate.
+
+                Below is the prior agent's final message. It contains a fenced
+                ```json``` block with fields `rule_id`, `proposedChanges`, `summary`.
+
+                === PRIOR AGENT MESSAGE BEGIN ===
+                {{ steps.ai_propose.output.message }}
+                === PRIOR AGENT MESSAGE END ===
+
+                Steps to perform:
+                1. Parse the JSON block from the prior agent message.
+                2. Call the `apply-rule-fix` tool from the `fix-rule-errors` skill with
+                   EXACTLY these two named arguments:
+                     - ruleId: "{{ inputs.rule_id }}"
+                     - proposedChanges: <the proposedChanges object from the parsed JSON>
+                3. Do not omit `proposedChanges`. Do not modify it. Pass it as the full
+                   object (e.g. {"query":"..."}), not as a string.
+                4. Report whether the patch succeeded and which fields changed.
+        else:
+          - name: log_rejected
+            type: console
+            with:
+              message: "User rejected the proposed fix for rule {{ inputs.rule_id }} - skipping apply."

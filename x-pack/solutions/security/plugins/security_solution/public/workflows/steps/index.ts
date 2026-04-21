@@ -13,4 +13,13 @@ export const registerWorkflowStepDefinitions = (
   workflowsExtensions.registerStepDefinition(() =>
     import('./alerts_search_step').then((m) => m.alertsSearchPublicStepDefinition)
   );
+  workflowsExtensions.registerStepDefinition(() =>
+    import('./get_autonomous_mode_step').then((m) => m.getAutonomousModePublicStepDefinition)
+  );
+  workflowsExtensions.registerStepDefinition(() =>
+    import('./propose_rule_fix_step').then((m) => m.proposeRuleFixPublicStepDefinition)
+  );
+  workflowsExtensions.registerStepDefinition(() =>
+    import('./apply_rule_fix_step').then((m) => m.applyRuleFixPublicStepDefinition)
+  );
 };

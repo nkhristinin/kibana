@@ -13,6 +13,7 @@ import { exceptionListType } from '@kbn/lists-plugin/server/saved_objects';
 import { scriptsLibrarySavedObjectType } from './endpoint/lib/scripts_library';
 import type { ExperimentalFeatures } from '../common';
 import { trialCompanionNBASavedObjectType } from './lib/trial_companion/saved_objects';
+import { autonomousModeSavedObjectType } from './lib/detection_engine/autonomous_mode/saved_object';
 import { referenceDataSavedObjectType } from './endpoint/lib/reference_data';
 import { protectionUpdatesNoteType } from './endpoint/lib/protection_updates_note/saved_object_mappings';
 import { noteType, pinnedEventType, timelineType } from './lib/timeline/saved_object_mappings';
@@ -61,6 +62,7 @@ const types = [
   promptType,
   referenceDataSavedObjectType,
   trialCompanionNBASavedObjectType,
+  autonomousModeSavedObjectType,
 ];
 
 export const savedObjectTypes = types.map((type) => type.name);

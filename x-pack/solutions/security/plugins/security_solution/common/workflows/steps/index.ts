@@ -12,3 +12,27 @@ export {
   alertsSearchStepCommonDefinition,
 } from './alerts_search_step';
 export type { AlertsSearchInput, AlertsSearchOutput } from './alerts_search_step';
+
+export {
+  GET_AUTONOMOUS_MODE_STEP_TYPE_ID,
+  GetAutonomousModeInputSchema,
+  GetAutonomousModeOutputSchema,
+  getAutonomousModeStepCommonDefinition,
+} from './get_autonomous_mode_step';
+export type { GetAutonomousModeInput, GetAutonomousModeOutput } from './get_autonomous_mode_step';
+
+export {
+  PROPOSE_RULE_FIX_STEP_TYPE_ID,
+  ProposeRuleFixInputSchema,
+  ProposeRuleFixOutputSchema,
+  proposeRuleFixStepCommonDefinition,
+} from './propose_rule_fix_step';
+export type { ProposeRuleFixInput, ProposeRuleFixOutput } from './propose_rule_fix_step';
+
+export {
+  APPLY_RULE_FIX_STEP_TYPE_ID,
+  ApplyRuleFixInputSchema,
+  ApplyRuleFixOutputSchema,
+  applyRuleFixStepCommonDefinition,
+} from './apply_rule_fix_step';
+export type { ApplyRuleFixInput, ApplyRuleFixOutput } from './apply_rule_fix_step';

@@ -15,6 +15,7 @@ import { getEntityAnalyticsSkill } from './entity_analytics';
 import { threatHuntingSkill } from './threat_hunting';
 import { alertAnalysisSkill } from './alert_analysis';
 import { createFixFalsePositiveAlertsSkill } from './fix_false_positive_alerts';
+import { createFixRuleErrorsSkill } from './fix_rule_errors';
 import type { EntityAnalyticsRoutesDeps } from '../../lib/entity_analytics/types';
 import { getSecurityMlJobsSkill } from './security_ml_jobs';
 import type { SecuritySolutionPluginCoreSetupDependencies } from '../../plugin_contract';
@@ -64,4 +65,5 @@ export const registerSkills = async ({
   await agentBuilder.skills.register(threatHuntingSkill);
   await agentBuilder.skills.register(alertAnalysisSkill);
   await agentBuilder.skills.register(createFixFalsePositiveAlertsSkill(core, logger));
+  await agentBuilder.skills.register(createFixRuleErrorsSkill(core));
 };

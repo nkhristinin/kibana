@@ -42,11 +42,26 @@ import {
 import { useUserPrivileges } from '../../../../common/components/user_privileges';
 import { useAgentBuilderAvailability } from '../../../../agent_builder/hooks/use_agent_builder_availability';
 import { CpsMlRuleCallout } from '../../components/cps_ml_rule_callout/callout';
+import {
+  AutomationActivityFlyout,
+  AutonomousModeSettingsModal,
+  PendingApprovalsPanel,
+} from '../../../rule_management/components/autonomous_mode';
 
 const RulesPageContent = () => {
   const [isImportModalVisible, showImportModal, hideImportModal] = useBoolState();
   const [isValueListFlyoutVisible, showValueListFlyout, hideValueListFlyout] = useBoolState();
   const [isRuleSettingsModalOpen, openRuleSettingsModal, closeRuleSettingsModal] = useBoolState();
+  const [
+    isAutonomousModeModalOpen,
+    openAutonomousModeModal,
+    closeAutonomousModeModal,
+  ] = useBoolState();
+  const [
+    isAutomationActivityOpen,
+    openAutomationActivity,
+    closeAutomationActivity,
+  ] = useBoolState();
   const kibanaServices = useKibana().services;
   const { application } = kibanaServices;
   const { navigateToApp } = application;
@@ -111,6 +126,24 @@ const RulesPageContent = () => {
                 </EuiButtonEmpty>
               )}
               <EuiFlexItem grow={false}>
+                <EuiButtonEmpty
+                  data-test-subj="autonomous-mode-settings-button"
+                  iconType="bolt"
+                  onClick={openAutonomousModeModal}
+                >
+                  {'Automation mode'}
+                </EuiButtonEmpty>
+              </EuiFlexItem>
+              <EuiFlexItem grow={false}>
+                <EuiButtonEmpty
+                  data-test-subj="automation-activity-button"
+                  iconType="list"
+                  onClick={openAutomationActivity}
+                >
+                  {'Automation activity'}
+                </EuiButtonEmpty>
+              </EuiFlexItem>
+              <EuiFlexItem grow={false}>
                 <AddElasticRulesButton isDisabled={!canReadRules || loading} />
               </EuiFlexItem>
               <EuiFlexItem grow={false}>
@@ -156,6 +189,12 @@ const RulesPageContent = () => {
           {isRuleSettingsModalOpen && canAccessGapAutoFill && (
             <RuleSettingsModal isOpen={isRuleSettingsModalOpen} onClose={closeRuleSettingsModal} />
           )}
+          {isAutonomousModeModalOpen && (
+            <AutonomousModeSettingsModal onClose={closeAutonomousModeModal} />
+          )}
+          {isAutomationActivityOpen && (
+            <AutomationActivityFlyout onClose={closeAutomationActivity} />
+          )}
           <RuleUpdateCallouts shouldShowUpdateRulesCallout={canEditRules} />
           <EuiSpacer size="s" />
           {deprecatedRulesCallout}
@@ -163,6 +202,7 @@ const RulesPageContent = () => {
             kibanaServices={kibanaServices}
             categories={[DEFAULT_APP_CATEGORIES.security.id]}
           />
+          <PendingApprovalsPanel />
           <AllRules data-test-subj="all-rules" />
         </SecuritySolutionPageWrapper>
       </RulesTableContextProvider>

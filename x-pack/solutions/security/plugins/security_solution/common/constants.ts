@@ -319,6 +319,10 @@ export const DETECTION_ENGINE_ALERTS_INDEX_URL =
   `${INTERNAL_DETECTION_ENGINE_URL}/signal/index` as const;
 export const DETECTION_ENGINE_ALERT_SUGGEST_USERS_URL =
   `${INTERNAL_DETECTION_ENGINE_URL}/users/_find` as const;
+export const INTERNAL_AUTONOMOUS_MODE_URL =
+  `${INTERNAL_DETECTION_ENGINE_URL}/autonomous_mode` as const;
+export const INTERNAL_AUTOMATION_ACTIVITY_URL =
+  `${INTERNAL_DETECTION_ENGINE_URL}/automation_activity` as const;
 
 /**
  * Extended alerts routes

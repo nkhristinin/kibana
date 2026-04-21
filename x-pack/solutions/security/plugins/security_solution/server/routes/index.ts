@@ -48,6 +48,8 @@ import { registerWorkflowInsightsRoutes } from '../endpoint/routes/workflow_insi
 import { registerManageExceptionsRoutes } from '../lib/exceptions/api/register_routes';
 import { registerDashboardsRoutes } from '../lib/dashboards/routes';
 import { registerTagsRoutes } from '../lib/tags/routes';
+import { registerAutonomousModeRoutes } from '../lib/detection_engine/autonomous_mode/api/routes';
+import { registerAutomationActivityRoute } from '../lib/detection_engine/autonomous_mode/api/automation_activity_route';
 import { setAlertTagsRoute } from '../lib/detection_engine/routes/signals/set_alert_tags_route';
 import { setAlertAssigneesRoute } from '../lib/detection_engine/routes/signals/set_alert_assignees_route';
 import { suggestUserProfilesRoute } from '../lib/detection_engine/routes/users/suggest_user_profiles_route';
@@ -136,6 +138,8 @@ export const initRoutes = (
   // Dashboards
   registerDashboardsRoutes(router, logger);
   registerTagsRoutes(router, logger);
+  registerAutonomousModeRoutes(router, logger);
+  registerAutomationActivityRoute(router, logger);
 
   const { previewTelemetryUrlEnabled } = config.experimentalFeatures;
 

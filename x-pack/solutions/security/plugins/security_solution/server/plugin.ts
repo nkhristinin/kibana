@@ -824,7 +824,7 @@ export class Plugin implements ISecuritySolutionPlugin {
 
     if (plugins.workflowsExtensions) {
       registerWorkflowTriggers(plugins.workflowsExtensions);
-      registerWorkflowSteps(plugins.workflowsExtensions);
+      registerWorkflowSteps(plugins.workflowsExtensions, core.getStartServices);
     }
 
     setupAlertsCapabilitiesSwitcher({
