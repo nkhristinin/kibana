@@ -9,4 +9,7 @@ export { alertAnalysisSkill } from './alert_analysis';
 export { threatHuntingSkill } from './threat_hunting';
 export { createAutomaticTroubleshootingSkill } from './automatic_troubleshooting';
 export { getDetectionRuleEditSkill } from './detection_rule_edit';
+export { getFixFalsePositiveAlertsSkill } from './fix_false_positive_alerts';
+export { getFixRuleExecutionFailuresSkill } from './fix_rule_execution_failures';
+export { getInstallRelevantPrebuiltRulesSkill } from './install_relevant_prebuilt_rules';
 export { registerSkills } from './register_skills';

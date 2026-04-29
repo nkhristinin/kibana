@@ -23,3 +23,17 @@ export {
   createDetectionRuleTool,
   SECURITY_CREATE_DETECTION_RULE_TOOL_ID,
 } from './create_detection_rule_tool';
+export {
+  getRuleDetailsTool,
+  SECURITY_GET_RULE_DETAILS_TOOL_ID,
+  searchAlertsByRuleTool,
+  SECURITY_SEARCH_ALERTS_BY_RULE_TOOL_ID,
+  aggregateAlertsForRuleTool,
+  SECURITY_AGGREGATE_ALERTS_FOR_RULE_TOOL_ID,
+  previewRuleTool,
+  SECURITY_PREVIEW_RULE_TOOL_ID,
+  proposeActionTool,
+  SECURITY_PROPOSE_ACTION_TOOL_ID,
+  reviewPrebuiltRulesToInstallTool,
+  SECURITY_REVIEW_PREBUILT_RULES_TO_INSTALL_TOOL_ID,
+} from './core';

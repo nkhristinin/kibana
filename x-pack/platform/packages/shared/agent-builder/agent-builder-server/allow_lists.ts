@@ -44,6 +44,13 @@ export const AGENT_BUILDER_BUILTIN_TOOLS = [
   `${internalNamespaces.security}.alerts`,
   `${internalNamespaces.security}.get_entity`,
   `${internalNamespaces.security}.search_entities`,
+  `${internalNamespaces.security}.core.get_rule_details`,
+  `${internalNamespaces.security}.core.search_alerts_by_rule`,
+  `${internalNamespaces.security}.core.aggregate_alerts_for_rule`,
+  `${internalNamespaces.security}.core.preview_rule`,
+  `${internalNamespaces.security}.core.find_noisy_rules`,
+  `${internalNamespaces.security}.core.propose_action`,
+  `${internalNamespaces.security}.core.review_prebuilt_rules_to_install`,
 
   // Streams – read
   `${internalNamespaces.streams}.list_streams`,
@@ -128,6 +135,10 @@ export const AGENT_BUILDER_BUILTIN_SKILLS = [
   'alert-analysis',
   'detection-rule-edit',
   'threat-hunting',
+  'fix-false-positive-alerts',
+  'fix-rule-execution-failures',
+  'install-relevant-prebuilt-rules',
+  'find-noisy-rules',
 
   // O11Y
   'observability.rca',

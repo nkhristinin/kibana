@@ -19,6 +19,8 @@ export const ruleAttachmentDataSchema = securityAttachmentDataSchema.extend({
 });
 
 const DETECTION_RULE_SKILL_NAME_ID = 'detection-rule-edit';
+const FIX_FP_SKILL_NAME_ID = 'fix-false-positive-alerts';
+const FIX_RULE_FAILURES_SKILL_NAME_ID = 'fix-rule-execution-failures';
 
 type RuleAttachmentData = z.infer<typeof ruleAttachmentDataSchema>;
 
@@ -67,10 +69,15 @@ SECURITY RULE DATA:
 {ruleData}
 
 ---
-Complete in order:
+Pick the skill that matches the user's intent and load it with read_skill before doing anything else. Do NOT default to an alerts-triage skill just because the user mentions the word "alerts" — if the attachment is a rule and the user is asking about the rule's behavior, the rule-focused skills below are the correct entry point.
 
-1. When asked to modify, update, or create a detection rule, ALWAYS read the ${DETECTION_RULE_SKILL_NAME_ID} skill from the skills/security/rules directory.
-2. Use the available tools to research, create, or edit the rule and provide a response.`;
+If there is ALSO a pending security.action_proposal attachment in the conversation for this same rule and the user is clearly tweaking that proposed remediation ("also...", "instead...", "change the proposal to..."), prefer continuing that pending proposal flow rather than switching to a generic rule-editing experience, as long as the new request still fits the proposal's goal.
+
+- If the user asks "is this a false positive?" / "are these alerts noisy?" / "can you tune this rule?" / "reduce false positives on this rule" / any intent to DIAGNOSE NOISE on an attached rule and propose a tuning fix → load the ${FIX_FP_SKILL_NAME_ID} skill from the skills/security/alerts/rules directory.
+- If the user says the rule is BROKEN, FAILING, throwing EXECUTION ERRORS, or asks whether to STOP / DISABLE it because of failures → load the ${FIX_RULE_FAILURES_SKILL_NAME_ID} skill from the skills/security/alerts/rules directory.
+- If the user asks to CREATE, EDIT, or UPDATE the rule itself (change its name, tags, severity, MITRE mappings, query syntax, etc.) → load the ${DETECTION_RULE_SKILL_NAME_ID} skill from the skills/security/rules directory.
+
+If the intent is ambiguous, prefer ${FIX_FP_SKILL_NAME_ID} whenever the user is asking about the rule's ALERT VOLUME or QUALITY (false positives, noise, tuning), prefer ${FIX_RULE_FAILURES_SKILL_NAME_ID} when the user is asking about RULE FAILURES OR WHETHER TO STOP THE RULE, and prefer ${DETECTION_RULE_SKILL_NAME_ID} when the user is asking about the rule's CONFIGURATION.`;
       return description;
     },
   };

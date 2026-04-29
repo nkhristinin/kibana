@@ -81,10 +81,15 @@ SECURITY ALERT DATA:
 Complete in order:
 
 1. Extract alert id(s): _id
-2. Extract rule name: kibana.alert.rule.name
-3. Extract entities: host.name, user.name, service.name
-4. Extract MITRE fields: kibana.alert.rule.threat.tactic.id, kibana.alert.rule.threat.technique.id, threat.tactic.id
-5. Use the available tools to gather context about the alert and provide a response.`;
+2. Extract rule id: kibana.alert.rule.uuid (this is the rule's saved-object id)
+3. Extract rule name: kibana.alert.rule.name
+4. Extract entities: host.name, user.name, service.name
+5. Extract MITRE fields: kibana.alert.rule.threat.tactic.id, kibana.alert.rule.threat.technique.id, threat.tactic.id
+
+Then pick the skill matching the user's intent:
+- If the user asks "is this a false positive?" / "why is this noisy?" / "can you tune the rule that produced this alert?" → load the fix-false-positive-alerts skill from the skills/security/alerts/rules directory. The skill will hydrate the rule (using the extracted kibana.alert.rule.uuid) and propose a tuning change on it.
+- For alert triage / investigation / correlation → load the alert-analysis skill from the skills/security/alerts directory.
+- Otherwise use the available tools directly to answer.`;
       return description;
     },
   };

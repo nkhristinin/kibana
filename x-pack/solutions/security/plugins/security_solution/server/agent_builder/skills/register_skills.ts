@@ -14,8 +14,12 @@ import { getDetectionRuleEditSkill } from './detection_rule_edit';
 import { getEntityAnalyticsSkill } from './entity_analytics';
 import { threatHuntingSkill } from './threat_hunting';
 import { alertAnalysisSkill } from './alert_analysis';
+import { getFixFalsePositiveAlertsSkill } from './fix_false_positive_alerts';
+import { getFixRuleExecutionFailuresSkill } from './fix_rule_execution_failures';
 import type { EntityAnalyticsRoutesDeps } from '../../lib/entity_analytics/types';
 import { getSecurityMlJobsSkill } from './security_ml_jobs';
+import { getInstallRelevantPrebuiltRulesSkill } from './install_relevant_prebuilt_rules';
+import { getFindNoisyRulesSkill } from './find_noisy_rules';
 
 interface RegisterSkillsOpts {
   agentBuilder: AgentBuilderPluginSetup;
@@ -59,4 +63,8 @@ export const registerSkills = async ({
 
   await agentBuilder.skills.register(threatHuntingSkill);
   await agentBuilder.skills.register(alertAnalysisSkill);
+  agentBuilder.skills.register(getFixFalsePositiveAlertsSkill());
+  agentBuilder.skills.register(getFixRuleExecutionFailuresSkill());
+  agentBuilder.skills.register(getInstallRelevantPrebuiltRulesSkill());
+  agentBuilder.skills.register(getFindNoisyRulesSkill());
 };

@@ -13,6 +13,15 @@ import { attackDiscoverySearchTool } from './attack_discovery_search_tool';
 import { entityRiskScoreTool, getEntityTool, searchEntitiesTool } from './entity_analytics';
 import { alertsTool } from './alerts_tool';
 import { createDetectionRuleTool } from './create_detection_rule_tool';
+import {
+  getRuleDetailsTool,
+  searchAlertsByRuleTool,
+  aggregateAlertsForRuleTool,
+  previewRuleTool,
+  findNoisyRulesTool,
+  proposeActionTool,
+  reviewPrebuiltRulesToInstallTool,
+} from './core';
 import type { SecuritySolutionPluginCoreSetupDependencies } from '../../plugin_contract';
 
 /**
@@ -31,4 +40,13 @@ export const registerTools = async (
   agentBuilder.tools.register(alertsTool(core, logger));
   agentBuilder.tools.register(getEntityTool(core, logger, experimentalFeatures));
   agentBuilder.tools.register(searchEntitiesTool(core, logger, experimentalFeatures));
+
+  // security.core.* shared DEX tools
+  agentBuilder.tools.register(getRuleDetailsTool(core, logger));
+  agentBuilder.tools.register(searchAlertsByRuleTool(core, logger));
+  agentBuilder.tools.register(aggregateAlertsForRuleTool(core, logger));
+  agentBuilder.tools.register(previewRuleTool(core, logger));
+  agentBuilder.tools.register(findNoisyRulesTool(core, logger));
+  agentBuilder.tools.register(proposeActionTool(core, logger));
+  agentBuilder.tools.register(reviewPrebuiltRulesToInstallTool(core, logger));
 };
