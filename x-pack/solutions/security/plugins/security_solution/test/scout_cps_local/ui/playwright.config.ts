@@ -5,5 +5,9 @@
  * 2.0.
  */
 
-export * from './fixtures';
-export type { SecurityPageObjects, ThreatMatchRuleCreatePage } from './fixtures/test/page_objects';
+import { createPlaywrightConfig } from '@kbn/scout-security';
+
+export default createPlaywrightConfig({
+  testDir: './tests',
+  workers: 2,
+});
