@@ -53,6 +53,7 @@ export const AGENT_BUILDER_BUILTIN_TOOLS = [
   `${internalNamespaces.streams}.diagnose_stream`,
   `${internalNamespaces.streams}.query_documents`,
   `${internalNamespaces.streams}.design_pipeline`,
+  `${internalNamespaces.streams}.list_ilm_policies`,
   `${internalNamespaces.streams}.update_stream`,
   `${internalNamespaces.streams}.create_partition`,
   `${internalNamespaces.streams}.delete_stream`,
