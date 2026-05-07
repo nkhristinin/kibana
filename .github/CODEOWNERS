@@ -734,6 +734,7 @@ src/platform/packages/shared/serverless/settings/common @elastic/appex-sharedux 
 src/platform/packages/shared/serverless/settings/observability_project @elastic/appex-sharedux @elastic/kibana-management @elastic/obs-presentation-team
 src/platform/packages/shared/serverless/settings/search_project @elastic/search-kibana @elastic/kibana-management
 src/platform/packages/shared/serverless/settings/security_project @elastic/security-solution @elastic/kibana-management
+src/platform/packages/shared/serverless/settings/vectordb_project @elastic/search-kibana
 src/platform/packages/shared/serverless/settings/workplace_ai_project @elastic/search-kibana
 src/platform/packages/shared/serverless/types @elastic/appex-sharedux
 src/platform/packages/shared/shared-ux/ai-components @elastic/appex-sharedux
@@ -1354,6 +1355,7 @@ x-pack/solutions/security/test/plugin_functional/plugins/resolver_test @elastic/
 x-pack/solutions/security/test/security_solution_api_integration @elastic/security-detection-engine
 x-pack/solutions/security/test/security_solution_api_integration/config/services/detections_response @elastic/security-detection-engine
 x-pack/solutions/security/test/security_solution_endpoint @elastic/security-defend-workflows
+x-pack/solutions/vectordb/plugins/serverless_vectordb @elastic/search-kibana
 x-pack/solutions/workplaceai/plugins/serverless_workplace_ai @elastic/search-kibana @elastic/workchat-eng
 x-pack/solutions/workplaceai/plugins/workplace_ai_app @elastic/search-kibana @elastic/workchat-eng
 x-pack/solutions/workplaceai/test @elastic/workchat-eng

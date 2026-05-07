@@ -8983,6 +8983,14 @@
   version "0.0.0"
   uid ""
 
+"@kbn/serverless-vectordb-settings@link:src/platform/packages/shared/serverless/settings/vectordb_project":
+  version "0.0.0"
+  uid ""
+
+"@kbn/serverless-vectordb@link:x-pack/solutions/vectordb/plugins/serverless_vectordb":
+  version "0.0.0"
+  uid ""
+
 "@kbn/serverless-workplace-ai-settings@link:src/platform/packages/shared/serverless/settings/workplace_ai_project":
   version "0.0.0"
   uid ""
