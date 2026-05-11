@@ -1,8 +1,10 @@
 /*
  * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
- * or more contributor license agreements. Licensed under the Elastic License
- * 2.0; you may not use this file except in compliance with the Elastic License
- * 2.0.
+ * or more contributor license agreements. Licensed under the "Elastic License
+ * 2.0", the "GNU Affero General Public License v3.0 only", and the "Server Side
+ * Public License v 1"; you may not use this file except in compliance with, at
+ * your election, the "Elastic License 2.0", the "GNU Affero General Public
+ * License v3.0 only", or the "Server Side Public License, v 1".
  */
 
 /**
@@ -15,7 +17,7 @@
  *   export KIBANA_EIS_CCM_API_KEY="$(vault read -field key secret/kibana-issues/dev/inference/kibana-eis-ccm)"
  *   node scripts/discover_eis_models.js
  *
- * The output file (target/eis_models.json) is read by FTR tests.
+ * The output file (target/eis_models.json) is read by smoke tests.
  */
 
 import { run } from '@kbn/dev-cli-runner';
@@ -201,7 +203,7 @@ run(
   },
   {
     description:
-      'Discovers EIS chat completion models and writes them to target/eis_models.json for FTR tests',
+      'Discovers EIS chat completion models and writes them to target/eis_models.json for smoke tests',
     flags: {
       number: ['retries'],
       default: {
