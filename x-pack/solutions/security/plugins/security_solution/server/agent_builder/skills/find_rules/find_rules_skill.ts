@@ -6,7 +6,11 @@
  */
 
 import { defineSkillType } from '@kbn/agent-builder-server/skills/type_definition';
-import { SECURITY_FIND_RULES_TOOL_ID, SECURITY_ALERTS_TOOL_ID } from '../../tools';
+import { internalNamespaces } from '@kbn/agent-builder-common/base/namespaces';
+import { SECURITY_ALERTS_TOOL_ID } from '../../tools';
+import { DETECTION_RULES_API_KNOWLEDGE } from '../detection_rules_api_knowledge';
+
+const WORKFLOW_EXECUTE_STEP_TOOL_ID = `${internalNamespaces.workflows}.workflow_execute_step`;
 
 export const findRulesSkill = defineSkillType({
   id: 'find-rules',
@@ -18,6 +22,13 @@ export const findRulesSkill = defineSkillType({
     'risk score range, name substring, source index pattern, or enabled state. ' +
     'Rank rules by alert volume to identify noisy detections. ' +
     "Read-only and scoped to MULTI-rule discovery — for individual rule actions or other rule-engine queries see the appropriate sibling skills documented in this skill's content.",
+  referencedContent: [
+    {
+      name: 'detection-rules-api',
+      relativePath: '.',
+      content: DETECTION_RULES_API_KNOWLEDGE,
+    },
+  ],
   content: `# Find Detection Rules
 
 ## When to Use This Skill
@@ -64,86 +75,35 @@ Tag values are environment-specific and you cannot know the canonical strings in
 
 **Whenever any tag filter is involved — whether the user named the tag string directly ("rules tagged MITRE"), referenced a category ("endpoint rules"), or described semantic intent ("anything about network security") — you MUST:**
 
-1. **First call** \`security.find_rules\` with \`groupBy: "tags"\` to enumerate the actual tag values in this space. This is the same data the Detection Rules UI tag filter loads.
+1. **First** call \`workflow_execute_step\` with a \`kibana.request\` step to \`GET /api/detection_engine/tags\` to enumerate the actual tag values in this space.
 2. **Read the returned tag list.** Pick the exact strings whose meaning matches the user's intent.
-3. **Then call** \`security.find_rules\` again with one \`{ tag: "<exact value>" }\` condition per tag.
+3. **Then** call \`workflow_execute_step\` again with a \`kibana.request\` step to \`GET /api/detection_engine/rules/_find\` with \`filter: "alert.attributes.tags: \\"<exact value>\\""\`.
 
-Do not skip discovery, even when the user's wording looks like a known tag. If \`groupBy: "tags"\` returns no tag matching the user's intent, tell the user plainly and offer the closest available values — do not invent one.
+Do not skip discovery, even when the user's wording looks like a known tag. If the tag list contains no match, tell the user plainly and offer the closest available values — do not invent one.
 
-Exception — **structured MITRE IDs** (\`T####\`, \`T####.###\`, \`TA####\`): use \`{ mitreTechnique: "T1059" }\` / \`{ mitreTactic: "TA0002" }\` directly, no discovery needed. The format is canonical and schema-enforced.
+Exception — **structured MITRE IDs** (\`T####\`, \`T####.###\`, \`TA####\`): filter directly with \`alert.attributes.params.threat.technique.id: "T1059"\` — no discovery needed. The format is canonical and schema-enforced.
 
 ## Process
 
-### 1. Choose the right tool
+All API details — step YAML, endpoints, KQL filter patterns, response shape — are in the **[detection-rules-api]** referenced content. Read it before building any step.
 
-- **Rule metadata / counts / sort** → \`security.find_rules\` (structured filters).
-- **Alert volume ranking** ("noisiest rules", "top N by alerts"):
-  1. Call \`security.alerts\` to aggregate alerts grouped by \`kibana.alert.rule.uuid\` (NOT \`kibana.alert.rule.name\` — names are not guaranteed unique).
-  2. Then call \`security.find_rules\` with one \`{ ruleUuid: "<uuid>" }\` condition per top rule (each as its own AndGroup, OR-combined across groups) to translate the UUIDs into rule names + metadata. The same UUID also identifies rules in the event log (\`kibana.saved_objects.id\`) — so this is the one identifier to use across all rule lookups. ⚠️ Note the atom name: \`ruleUuid\` is the Saved Object UUID (\`kibana.alert.rule.uuid\`), NOT the static detection-engine \`rule_id\` — both identifiers are surfaced in the tool's output as \`id\` and \`ruleId\` respectively.
-- **Tag discovery** (before filtering by tag) → \`security.find_rules\` with \`groupBy: "tags"\`. See "Tag Discovery" above.
+### 1. Find rules
 
-### 2. Build a structured filter (no KQL)
+Use \`workflow_execute_step\` with a \`kibana.request\` step. See [detection-rules-api] for the exact YAML and KQL filter syntax.
 
-\`security.find_rules\` takes a structured filter — never raw KQL. The shape mirrors the indicator-match rule's \`threat_mapping\`:
+### 2. Alert volume ranking ("noisiest rules")
 
-- \`filter: AndGroup[]\` — **outer array = OR**. Rules matching ANY group are included.
-- \`exclude: AndGroup[]\` — same shape; rules matching ANY group are EXCLUDED.
-- \`AndGroup\` = \`Condition[]\` — **inner array = AND**. All conditions in a group must match.
-- \`Condition\` = **one atomic fact** (one field per object), e.g. \`{ severity: "critical" }\`, \`{ tag: "MITRE" }\`, \`{ mitreTechnique: "T1059" }\`.
+1. Call \`security.alerts\` to aggregate by \`kibana.alert.rule.uuid\` (NOT by name — names are not unique).
+2. For each top UUID, call \`workflow_execute_step\` with the UUID lookup from [detection-rules-api] to resolve names + metadata.
 
-**One rule to remember:** outer is OR, inner is AND, leaf is one fact. There is no "OR within a field" — to express OR you always split into two groups.
+### 3. Render the result
 
-### 3. Atomic conditions
+**Rule lists** — default columns: **Name | Severity | Enabled | Type**.
+Add a column only when the user filtered by, sorted by, or explicitly asked for that field.
+Show at most 20 rows. If \`total\` exceeds what is shown, append "Showing 20 of N matching rules."
 
-Use exactly one of these shapes per object:
+**Tag discovery** — flat list of tag strings. Show them and ask which to filter by.
 
-| User intent | Condition |
-|---|---|
-| Enabled / disabled | \`{ enabled: true }\` or \`{ enabled: false }\` |
-| Custom vs prebuilt | \`{ ruleSource: "custom" }\` or \`{ ruleSource: "prebuilt" }\` |
-| One severity | \`{ severity: "critical" }\` |
-| One rule type | \`{ ruleType: "query" }\` |
-| One tag (discover first — see Tag Discovery) | \`{ tag: "MITRE" }\` |
-| One MITRE technique | \`{ mitreTechnique: "T1059" }\` |
-| One MITRE tactic | \`{ mitreTactic: "TA0002" }\` |
-| Name substring | \`{ nameContains: "PowerShell" }\` |
-| Min risk score | \`{ riskScoreMin: 70 }\` |
-| Max risk score | \`{ riskScoreMax: 90 }\` |
-| Index pattern | \`{ indexPattern: "logs-endpoint*" }\` |
-| Rule lookup by SO UUID (alert → rule translation, event-log lookups) | \`{ ruleUuid: "<kibana.alert.rule.uuid value>" }\` |
-
-### 4. Pattern examples
-
-- **"Critical severity rules"** → \`filter: [[{ severity: "critical" }]]\`
-- **"Critical OR high severity"** → \`filter: [[{ severity: "critical" }], [{ severity: "high" }]]\`
-- **"Critical AND MITRE-tagged"** → \`filter: [[{ severity: "critical" }, { tag: "MITRE" }]]\`
-- **"Tagged MITRE AND Custom (same rule)"** → \`filter: [[{ tag: "MITRE" }, { tag: "Custom" }]]\`
-- **"Tagged MITRE OR Custom"** → \`filter: [[{ tag: "MITRE" }], [{ tag: "Custom" }]]\`
-- **"(critical AND MITRE) OR (high AND Custom)"** → \`filter: [[{ severity: "critical" }, { tag: "MITRE" }], [{ severity: "high" }, { tag: "Custom" }]]\`
-- **"MITRE-tagged but NOT Custom"** → \`filter: [[{ tag: "MITRE" }]]\`, \`exclude: [[{ tag: "Custom" }]]\`
-- **"Risk score between 70 and 90"** → \`filter: [[{ riskScoreMin: 70 }, { riskScoreMax: 90 }]]\`
-- **"All disabled rules"** → \`filter: [[{ enabled: false }]]\`
-
-### 5. Sort, page, group
-
-- Sort: \`sortField: "severity"\` (or \`risk_score\`, \`updatedAt\`, etc.) + \`sortOrder: "desc"\`
-- Top-N: \`perPage: N\`
-- Count grouped by attribute: \`groupBy: "ruleType"\` (or \`tags\`, \`enabled\`, \`mitreTechnique\`, \`mitreTactic\`)
-- The tool returns at most 500 groups per aggregation. If \`truncated: true\` is set, additional groups exist beyond the cap (\`otherDocCount\` tells you how many) — surface this to the user instead of stating that a value does not exist.
-
-### 6. Render the result
-
-**Rule lists** — default columns, in this order: **Name | Severity | Enabled | Type**.
-
-Add a column only when one of these applies:
-- The user **filtered by** that field (e.g. a \`{ tag: "MITRE" }\` condition → add Tags column).
-- The user **sorted by** that field (e.g. \`sortField: "updatedAt"\` → add Updated column).
-- The user **explicitly asked** for that field (e.g. "show me the MITRE techniques" → add MITRE column).
-
-Show at most 20 rows. If the result \`total\` exceeds what is shown, append a single line like "Showing 20 of 47 matching rules."
-
-**\`groupBy\` results** — two columns: **Value | Count**, sorted by count descending.
-
-**Alert-volume rankings** — two columns: **Rule Name | Alert Count**, sorted by alert count descending.`,
-  getRegistryTools: () => [SECURITY_FIND_RULES_TOOL_ID, SECURITY_ALERTS_TOOL_ID],
+**Alert-volume rankings** — **Rule Name | Alert Count**, sorted descending.`,
+  getRegistryTools: () => [WORKFLOW_EXECUTE_STEP_TOOL_ID, SECURITY_ALERTS_TOOL_ID],
 });
